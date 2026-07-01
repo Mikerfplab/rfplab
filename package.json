@@ -2,6 +2,9 @@
   "name": "rfplab",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,6 +16,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.1.4"
+    "vite": "^4.5.2"
   }
 }
