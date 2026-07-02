@@ -2693,12 +2693,23 @@ function CarrierDashboard({ setPage, bidSettings }) {
 }
 
 // ─── App Root ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const [role, setRole] = useState("carrier");
-  const [page, setPage] = useState("event");
+export default function App({ dbUser = null, dbProfile = null, initialRole = null }) {
+  const [role, setRole] = useState(initialRole || dbProfile?.role || "shipper");
+  const [page, setPage] = useState(role === "carrier" ? "event" : "dashboard");
   const [bidSettings, setBidSettings] = useState({...DEFAULT_BID_SETTINGS});
   const [activityLog, setActivityLog] = useState(SEED_LOG);
   const nextId = useState(SEED_LOG.length + 1);
+
+  // If a real logged-in user exists, lock them to their actual role
+  // (admins can still switch for demo/support purposes)
+  const isLocked = dbProfile && dbProfile.role !== 'admin';
+  const displayName = dbProfile?.company || dbProfile?.full_name || (role === "carrier" ? "ROAR Logistics" : role === "shipper" ? "Spindrift Beverages" : "RFPlab Admin");
+
+  const handleSignOut = async () => {
+    const { signOut } = await import('./supabase.js');
+    await signOut();
+    window.location.reload();
+  };
 
   const addLog = (entry) => {
     setActivityLog(log => [
@@ -2710,12 +2721,13 @@ export default function App() {
   // Auto-log page-view events
   const handleSetPage = (p) => {
     if (role === "carrier" && p === "event") {
-      addLog({ carrier:"ROAR Logistics", event:"invite_viewed", detail:"Event page viewed", actor:"carrier" });
+      addLog({ carrier: displayName, event:"invite_viewed", detail:"Event page viewed", actor:"carrier" });
     }
     setPage(p);
   };
 
   const handleSetRole = (r) => {
+    if (isLocked) return; // real users can't switch roles
     setRole(r);
     setPage(r === "carrier" ? "event" : "dashboard");
   };
@@ -2762,7 +2774,7 @@ export default function App() {
   // The wizard renders as a full-screen overlay, bypassing the normal shell
   const isWizard = page === "new_rfp";
 
-  const roleLabels = { admin:"Admin Console", shipper:"Spindrift Beverages", carrier:"ROAR Logistics" };
+  const roleLabels = { admin:"Admin Console", shipper: displayName, carrier: displayName };
 
   // Wizard takes over the full screen — no sidebar/topbar wrapper
   if (isWizard) {
@@ -2789,7 +2801,14 @@ export default function App() {
                 <span style={{fontSize:13,color:C.gray}}>{roleLabels[role]}</span>
               </div>
             </div>
-            <RoleSwitcher role={role} setRole={handleSetRole} setPage={setPage}/>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              {!isLocked && <RoleSwitcher role={role} setRole={handleSetRole} setPage={setPage}/>}
+              {dbUser && (
+                <button onClick={handleSignOut} style={{background:"none",border:`1px solid ${C.grayli}`,borderRadius:6,padding:"5px 12px",fontSize:11,color:C.gray,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+                  Sign out
+                </button>
+              )}
+            </div>
           </div>
           <div className="content">{renderPage()}</div>
         </div>
