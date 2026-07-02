@@ -101,3 +101,62 @@ export async function getActivityLog(rfpId) {
   const { data } = await supabase.from('activity_log').select('*').eq('rfp_id', rfpId).order('created_at', { ascending: false })
   return data || []
 }
+
+// ─── Admin: User management ───────────────────────────────────────────────────
+
+export async function getAllUsers() {
+  // Admin reads all profiles
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
+export async function updateUserRole(userId, role) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', userId)
+  return { error }
+}
+
+export async function updateUserCompany(userId, company) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ company })
+    .eq('id', userId)
+  return { error }
+}
+
+export async function getAllRFPs() {
+  // Admin reads ALL rfps across all shippers
+  const { data } = await supabase
+    .from('rfps')
+    .select('*, profiles(full_name, company, email)')
+    .order('created_at', { ascending: false })
+  return data || []
+}
+
+export async function getAllSpotQuotes() {
+  const { data } = await supabase
+    .from('spot_quotes')
+    .select('*, profiles(full_name, company)')
+    .order('submitted_at', { ascending: false })
+  return data || []
+}
+
+// Generate an invite link for a new user
+// Admin creates the account, user gets a link to set their password
+export async function sendUserInvite({ email, role, company, full_name }) {
+  // 1. Create the user via signUp (they'll get an email to confirm)
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: Math.random().toString(36).slice(-12) + 'Aa1!', // temp password
+    options: {
+      data: { full_name, role, company },
+      emailRedirectTo: `${window.location.origin}?invite=1&role=${role}&email=${encodeURIComponent(email)}&company=${encodeURIComponent(company)}`,
+    }
+  })
+  return { data, error }
+}
