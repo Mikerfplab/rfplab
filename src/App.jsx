@@ -602,10 +602,32 @@ function EventPage({ carrierName, addLog, activityLog, setPage }) {
 }
 
 // ─── PAGE: Activity Log (all-carrier view for shipper/admin) ──────────────────
-function ActivityLogPage({ activityLog, viewerRole }) {
+function ActivityLogPage({ activityLog, viewerRole, dbProfile }) {
   const [filterCarrier, setFilterCarrier] = useState("all");
   const [filterEvent, setFilterEvent] = useState("all");
-  const carrierName = "ROAR Logistics"; // for carrier view
+  const isReal = !!dbProfile;
+  const carrierName = dbProfile?.company || dbProfile?.full_name || "ROAR Logistics";
+
+  // For real users with no activity yet, show a clean empty state
+  if (isReal && activityLog.length === 0) {
+    return (
+      <div>
+        <div className="section-header">
+          <div>
+            <div className="page-title">{viewerRole==="carrier" ? "My Activity" : "Activity Log"}</div>
+            <div className="page-sub">All timestamped actions on your bids and loads</div>
+          </div>
+        </div>
+        <div className="card" style={{textAlign:"center",padding:"52px 20px",border:`2px dashed ${C.grayli}`}}>
+          <div style={{fontSize:36,marginBottom:12}}>📜</div>
+          <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>No activity yet</div>
+          <div style={{fontSize:12,color:C.gray,maxWidth:380,margin:"0 auto"}}>
+            Activity is recorded automatically as carriers view invites, download files, confirm intent, and submit rates. It will appear here once your first RFP is active.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const displayLog = activityLog
     .filter(e => viewerRole==="carrier" ? e.carrier===carrierName : (filterCarrier==="all" || e.carrier===filterCarrier))
@@ -614,14 +636,13 @@ function ActivityLogPage({ activityLog, viewerRole }) {
 
   const carriers = [...new Set(activityLog.map(e=>e.carrier))];
 
-  // Summary counts per carrier for shipper/admin
   const summary = {};
   activityLog.forEach(e=>{
     if (!summary[e.carrier]) summary[e.carrier]={name:e.carrier,viewed:0,downloaded:0,intent:null,submitted:false};
     if (e.event==="invite_viewed") summary[e.carrier].viewed++;
     if (e.event==="file_downloaded") summary[e.carrier].downloaded++;
     if (["intent_yes","intent_no","intent_maybe"].includes(e.event)) summary[e.carrier].intent=e.event;
-    if (e.event==="rates_submitted" || e.event==="rates_updated") summary[e.carrier].submitted=true;
+    if (e.event==="rates_submitted"||e.event==="rates_updated") summary[e.carrier].submitted=true;
   });
 
   return (
@@ -629,28 +650,26 @@ function ActivityLogPage({ activityLog, viewerRole }) {
       <div className="section-header">
         <div>
           <div className="page-title">{viewerRole==="carrier"?"My Activity Log":"Carrier Activity Log"}</div>
-          <div className="page-sub">{viewerRole==="carrier"?"Your complete timestamped activity on this bid":"All carrier/broker interactions — timestamped"}</div>
+          <div className="page-sub">{viewerRole==="carrier"?"Your complete timestamped activity":"All carrier/broker interactions — timestamped"}</div>
         </div>
         <button className="btn btn-outline">⬇ Export CSV</button>
       </div>
 
-      {/* Summary grid (shipper + admin only) */}
-      {viewerRole!=="carrier" && (
+      {viewerRole!=="carrier" && carriers.length > 0 && (
         <div className="card" style={{marginBottom:16,padding:"16px 20px"}}>
           <div className="card-title" style={{marginBottom:12}}>Participation Summary</div>
           <div style={{overflowX:"auto"}}>
             <table>
               <thead><tr>
-                <th>Carrier / Broker</th><th>Type</th><th>Invite Sent</th><th>Page Views</th><th>Files Downloaded</th><th>Intent</th><th>Rates</th>
+                <th>Carrier / Broker</th><th>Invite Sent</th><th>Page Views</th><th>Files Downloaded</th><th>Intent</th><th>Rates</th>
               </tr></thead>
               <tbody>
-                {ALL_CARRIERS.filter(c=>c.invited).map(c=>{
-                  const s = summary[c.name]||{viewed:0,downloaded:0,intent:null,submitted:false};
+                {carriers.map(name=>{
+                  const s = summary[name]||{viewed:0,downloaded:0,intent:null,submitted:false};
                   const intentMeta = s.intent ? EVENT_TYPE_META[s.intent] : null;
                   return (
-                    <tr key={c.id}>
-                      <td style={{fontWeight:600}}>{c.name}</td>
-                      <td><span className={`badge ${c.type}`}>{c.type}</span></td>
+                    <tr key={name}>
+                      <td style={{fontWeight:600}}>{name}</td>
                       <td style={{color:C.green,fontSize:12}}>✓ Sent</td>
                       <td className="mono">{s.viewed||<span style={{color:C.gray}}>—</span>}</td>
                       <td className="mono">{s.downloaded||<span style={{color:C.gray}}>—</span>}</td>
@@ -669,7 +688,6 @@ function ActivityLogPage({ activityLog, viewerRole }) {
         </div>
       )}
 
-      {/* Filters */}
       <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
         {viewerRole!=="carrier" && (
           <select style={{maxWidth:200}} value={filterCarrier} onChange={e=>setFilterCarrier(e.target.value)}>
@@ -684,25 +702,22 @@ function ActivityLogPage({ activityLog, viewerRole }) {
         <div style={{fontSize:12,color:C.gray,alignSelf:"center",marginLeft:"auto"}}>{displayLog.length} events</div>
       </div>
 
-      {/* Event feed */}
       <div className="card" style={{padding:0,overflow:"hidden"}}>
         {displayLog.length===0
           ? <div style={{padding:32,textAlign:"center",color:C.gray,fontSize:13}}>No events match your filters</div>
           : displayLog.map((e,i)=>{
               const meta = EVENT_TYPE_META[e.event]||{icon:"•",label:e.event,color:C.gray};
-              const carrier = ALL_CARRIERS.find(c=>c.name===e.carrier);
               return (
                 <div key={e.id||i} style={{display:"flex",gap:14,padding:"12px 18px",borderBottom:`1px solid ${C.grayli}`,alignItems:"flex-start"}}>
                   <div style={{width:32,height:32,borderRadius:"50%",background:C.offwhite,border:`1px solid ${C.grayli}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{meta.icon}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       {viewerRole!=="carrier" && <span style={{fontWeight:700,fontSize:13}}>{e.carrier}</span>}
-                      {carrier && <span className={`badge ${carrier.type}`}>{carrier.type}</span>}
                       <span style={{fontWeight:600,fontSize:12,color:meta.color}}>{meta.label}</span>
                       <span style={{fontSize:11,color:C.gray,marginLeft:"auto",fontFamily:"'DM Mono',monospace"}}>{formatTs(e.ts)}</span>
                     </div>
                     <div style={{fontSize:12,color:C.gray,marginTop:3}}>{e.detail}</div>
-                    <div style={{fontSize:10,color:C.grayli.replace("E2","C"), marginTop:2,fontStyle:"italic"}}>logged by {e.actor}</div>
+                    <div style={{fontSize:10,color:C.gray,marginTop:2,fontStyle:"italic"}}>logged by {e.actor}</div>
                   </div>
                 </div>
               );
@@ -2714,12 +2729,38 @@ function AdminUserManagement() {
 }
 
 function AdminDashboard({ setPage }) {
+  const [stats, setStats] = useState({ rfps:0, spotLoads:0, users:0, shippers:0, carriers:0 });
+  const [recentUsers, setRecentUsers] = useState([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { getAllUsers, getAllRFPs, getAllSpotLoads } = await import('./supabase.js');
+      const [users, rfps, spotLoads] = await Promise.all([getAllUsers(), getAllRFPs(), getAllSpotLoads()]);
+      setStats({
+        rfps: rfps.length,
+        spotLoads: spotLoads.filter(l => l.status === 'live').length,
+        users: users.length,
+        shippers: users.filter(u => u.role === 'shipper').length,
+        carriers: users.filter(u => u.role === 'carrier').length,
+      });
+      setRecentUsers(users.slice(0, 8));
+      setLoadingStats(false);
+    }
+    load();
+  }, []);
+
+  const rolePill = (r) => ({
+    display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:10, fontWeight:700,
+    background: r==='admin'?C.navy : r==='shipper'?C.green : C.amber, color:'white'
+  });
+
   return (
     <div>
       <div className="section-header">
-        <div><div className="page-title">Platform Overview</div><div className="page-sub">All active bids, shippers, and platform health</div></div>
+        <div><div className="page-title">Platform Overview</div><div className="page-sub">Live data — all shippers, carriers, and bids</div></div>
         <div style={{display:"flex",gap:8}}>
-          <button className="btn btn-outline" onClick={()=>setPage("rfps")}>All RFPs</button>
+          <button className="btn btn-outline" onClick={()=>setPage("users")}>👥 Manage Users</button>
           <button className="btn btn-green" onClick={()=>setPage("new_rfp")}>🚀 New RFP</button>
         </div>
       </div>
@@ -2731,35 +2772,51 @@ function AdminDashboard({ setPage }) {
             <div style={{width:36,height:36,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📋</div>
             <div><div style={{fontWeight:700,fontSize:13,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier</div></div>
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.6}}>Structured bid process with lane files, carrier invites, award modeling, and routing guides.</div>
-          <div style={{marginTop:10,fontSize:12,fontWeight:600,color:C.sky}}>Launch RFP Wizard →</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.6,marginBottom:10}}>Build and manage structured bids for shippers — lane files, carrier invites, award modeling.</div>
+          <div style={{fontSize:12,fontWeight:600,color:C.sky}}>Launch RFP Wizard →</div>
         </div>
         <div style={{background:`linear-gradient(135deg,#7C3AED,#5B21B6)`,borderRadius:10,padding:"16px 18px",cursor:"pointer"}} onClick={()=>setPage("spot")}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
             <div style={{width:36,height:36,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>⚡</div>
             <div><div style={{fontWeight:700,fontSize:13,color:"white"}}>Spot Load Auction</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Real-time quotes</div></div>
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.6}}>Post a single load, set a timed quote window, and award to the best quote in real time.</div>
-          <div style={{marginTop:10,fontSize:12,fontWeight:600,color:"#C4B5FD"}}>View Spot Board →</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.6,marginBottom:10}}>Post a single load, set a timed quote window, award to the best quote in real time.</div>
+          <div style={{fontSize:12,fontWeight:600,color:"#C4B5FD"}}>View Spot Board →</div>
         </div>
       </div>
 
+      {/* Live stats from DB */}
       <div className="stat-grid">
-        <div className="stat-tile"><div className="stat-label">Active RFPs</div><div className="stat-value">2</div></div>
-        <div className="stat-tile"><div className="stat-label">Live Spot Loads</div><div className="stat-value">2</div></div>
-        <div className="stat-tile"><div className="stat-label">Carriers Active</div><div className="stat-value">11</div></div>
-        <div className="stat-tile"><div className="stat-label">Avg Coverage</div><div className="stat-value">91%</div></div>
+        <div className="stat-tile"><div className="stat-label">Total Users</div><div className="stat-value">{loadingStats ? '…' : stats.users}</div><div className="stat-sub">{stats.shippers} shippers · {stats.carriers} carriers</div></div>
+        <div className="stat-tile"><div className="stat-label">RFPs Created</div><div className="stat-value">{loadingStats ? '…' : stats.rfps}</div></div>
+        <div className="stat-tile"><div className="stat-label">Live Spot Loads</div><div className="stat-value">{loadingStats ? '…' : stats.spotLoads}</div></div>
+        <div className="stat-tile"><div className="stat-label">Platform</div><div className="stat-value" style={{fontSize:14,color:C.green,fontWeight:700}}>Live ✓</div></div>
       </div>
-      <div className="card"><div className="card-title" style={{marginBottom:12}}>Carrier Submissions — Spindrift May–Aug 2026</div>
-        {ALL_CARRIERS.map(c=>(
-          <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.grayli}`}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontWeight:500,fontSize:13}}>{c.name}</span>
-              <span className={`badge ${c.type}`}>{c.type}</span>
-            </div>
-            <div>{c.submitted?<span style={{color:C.green,fontWeight:600,fontSize:12}}>✓ {c.bids} bids</span>:c.invited?<span style={{color:C.amber,fontSize:12}}>⏳ Pending</span>:<span style={{color:C.gray,fontSize:12}}>Not invited</span>}</div>
-          </div>
-        ))}
+
+      {/* Recent users */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Recent Users</div>
+          <button className="btn btn-sm btn-outline" onClick={()=>setPage("users")}>View all →</button>
+        </div>
+        {loadingStats
+          ? <div style={{padding:"20px 0",textAlign:"center",color:C.gray,fontSize:12}}>Loading…</div>
+          : recentUsers.length === 0
+            ? <div style={{padding:"20px 0",textAlign:"center",color:C.gray,fontSize:12}}>
+                No users yet. <span style={{color:C.steel,cursor:"pointer"}} onClick={()=>setPage("users")}>Invite your first shipper →</span>
+              </div>
+            : recentUsers.map(u=>(
+                <div key={u.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.grayli}`}}>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:13}}>{u.full_name || u.email}</div>
+                    <div style={{fontSize:11,color:C.gray}}>{u.company || u.email}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={rolePill(u.role)}>{u.role}</span>
+                    <span style={{fontSize:11,color:C.gray}}>{new Date(u.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
       </div>
     </div>
   );
