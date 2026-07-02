@@ -786,11 +786,19 @@ function WizNav({ step, completed, onClose, builderRole }) {
 
 // ── Wiz Step 1 ────────────────────────────────────────────────────────────────
 function WStep1({ data, set }) {
-  const terms=[{val:"1mo",label:"1 Month",desc:"Short-term bridge"},{val:"3mo",label:"3 Months",desc:"Quarterly contract"},{val:"4mo",label:"4 Months",desc:"Seasonal program"},{val:"6mo",label:"6 Months",desc:"Semi-annual"},{val:"12mo",label:"Annual",desc:"Standard annual bid"},{val:"18mo",label:"18 Months",desc:"Extended agreement"},{val:"custom",label:"Custom dates",desc:"Define exact start / end"}];
+  const terms=[
+    {val:"1mo", label:"1 Month",   desc:"Short-term bridge"},
+    {val:"3mo", label:"3 Months",  desc:"Quarterly"},
+    {val:"4mo", label:"4 Months",  desc:"Seasonal program"},
+    {val:"6mo", label:"6 Months",  desc:"Semi-annual"},
+    {val:"12mo",label:"Annual",    desc:"Standard annual bid"},
+    {val:"18mo",label:"18 Months", desc:"Extended agreement"},
+    {val:"custom",label:"Custom",  desc:"Define exact dates"},
+  ];
   return (
     <div>
       <div className="page-title">Contract Basics</div>
-      <div className="page-sub">Name your RFP, define the contract term, and set the service geography.</div>
+      <div className="page-sub">Name your RFP, define the contract term, and set service geography.</div>
       <div className="card">
         <div className="card-title">📋 RFP Identity</div>
         <div className="wiz-row2">
@@ -798,30 +806,45 @@ function WStep1({ data, set }) {
           <div className="wiz-fg"><label>Shipper / Company</label><input value={data.shipper} onChange={e=>set("shipper",e.target.value)} placeholder="e.g. Spindrift Beverages"/></div>
         </div>
         <div className="wiz-row2">
-          <div className="wiz-fg"><label>Mode(s)</label>
+          <div className="wiz-fg"><label>Mode(s) — select all that apply</label>
             <div className="chip-grp">{["Dry Van","Reefer","Flatbed","IMDL","Power Only","Tanker"].map(m=>(
               <div key={m} className={`chip2${data.modes.includes(m)?" sel":""}`} onClick={()=>set("modes",data.modes.includes(m)?data.modes.filter(x=>x!==m):[...data.modes,m])}>{m}</div>
             ))}</div>
           </div>
-          <div className="wiz-fg"><label>Temp Requirements <span style={{fontWeight:400,color:C.gray}}>(all that apply)</span></label>
-            <div className="chip-grp">{["N/A — Dry Van","34–38°F Reefer","0°F Frozen","Ambient / Controlled","Lane-specific"].map(t=>(
+          <div className="wiz-fg"><label>Temp Requirements — select all that apply</label>
+            <div className="chip-grp">{["N/A — Dry","34–38°F Reefer","0°F Frozen","Ambient","Lane-specific"].map(t=>(
               <div key={t} className={`chip2${(data.tempReqs||[]).includes(t)?" sel":""}`} onClick={()=>{const cur=data.tempReqs||[];set("tempReqs",cur.includes(t)?cur.filter(x=>x!==t):[...cur,t]);}}>{t}</div>
             ))}</div>
           </div>
         </div>
       </div>
+
       <div className="card">
-        <div className="card-title">📅 Contract Term</div>
-        {terms.map(t=>(
-          <div key={t.val} className={`option-card${data.term===t.val?" sel":""}`} onClick={()=>set("term",t.val)}>
-            <input type="radio" readOnly checked={data.term===t.val}/><div><div className="option-title">{t.label}</div><div className="option-desc">{t.desc}</div></div>
+        <div className="card-title" style={{marginBottom:12}}>📅 Contract Term</div>
+        {/* Compact pill-grid — much cleaner than tall option cards */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+          {terms.map(t=>(
+            <div key={t.val} onClick={()=>set("term",t.val)}
+              style={{padding:"10px 12px",border:`2px solid ${data.term===t.val?C.sky:C.grayli}`,
+                borderRadius:8,cursor:"pointer",textAlign:"center",
+                background:data.term===t.val?C.ice:C.white,transition:"all .15s"}}>
+              <div style={{fontWeight:700,fontSize:13,color:data.term===t.val?C.steel:C.text}}>{t.label}</div>
+              <div style={{fontSize:10,color:C.gray,marginTop:2}}>{t.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div className="wiz-row2">
+          <div className="wiz-fg">
+            <label>Contract Start Date</label>
+            <input type="date" value={data.startDate} onChange={e=>set("startDate",e.target.value)}/>
           </div>
-        ))}
-        <div className="wiz-row2" style={{marginTop:8}}>
-          <div className="wiz-fg"><label>Contract Start</label><input type="date" value={data.startDate} onChange={e=>set("startDate",e.target.value)}/></div>
-          <div className="wiz-fg"><label>Contract End</label><input type="date" value={data.endDate} onChange={e=>set("endDate",e.target.value)}/></div>
+          <div className="wiz-fg">
+            <label>Contract End Date</label>
+            <input type="date" value={data.endDate} onChange={e=>set("endDate",e.target.value)}/>
+          </div>
         </div>
       </div>
+
       <div className="card">
         <div className="card-title">⚖️ Load Parameters</div>
         <div className="wiz-row3">
@@ -1362,19 +1385,21 @@ function WStep10({ allData, onLaunch }) {
 }
 
 // ── RFPWizard container (used by both shipper and admin) ──────────────────────
-function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShipper = "" }) {
-  const [step, setStep] = useState(1);
-  const [completed, setCompleted] = useState(new Set());
+function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShipper = "", draftData = null }) {
+  const [step, setStep] = useState(draftData?.step || 1);
+  const [completed, setCompleted] = useState(new Set(draftData?.completed || []));
   const [launched, setLaunched] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [lastSaved, setLastSaved] = useState(draftData?.savedAt || null);
 
-  const [basics,  setBasicsRaw]  = useState({name:"",shipper:initialShipper||"",modes:[],geos:["US Domestic"],term:"",startDate:"",endDate:"",maxWeight:"44,500",loadType:"Full Truckload (FTL)",geo:"US Domestic",tempReqs:[],sendNow:true,scheduled:false});
-  const [rates,   setRatesRaw]   = useState({rateFormat:"flat_linehaul",fscUploaded:false,fscVisible:true,calcAllin:true,oneRound:true,allowCreative:true,allowImdl:true,rateLock:true,acceptancePct:"98%",otdPct:"94%"});
-  const [award,   setAwardRaw]   = useState({awardModel:"primary_backup",maxCarriers:"3",splitPct:60,assetPct:60,feedbackEnabled:true,feedbackType:"bracket"});
-  const [lanes,   setLanesRaw]   = useState({laneMethod:"",laneFileUploaded:false,rawDataUploaded:false,termSheetUploaded:false,accessorialUploaded:false,loadingUploaded:false,deliveryUploaded:false,deductionsUploaded:false,proceduresUploaded:false,fscUploaded:false});
-  const [laneReq, setLaneReqRaw] = useState({sopNotes:"",privateNotes:"",allowCarrierNotes:true});
-  const [cData,   setCDataRaw]   = useState({carriers:[]});
-  const [timeline,setTimelineRaw]= useState({twoRounds:false});
-  const [notifD,  setNotifRaw]   = useState({emailSubject:"",emailBody:""});
+  const [basics,  setBasicsRaw]  = useState(draftData?.basics  || {name:"",shipper:initialShipper||"",modes:[],geos:["US Domestic"],term:"",startDate:"",endDate:"",maxWeight:"44,500",loadType:"Full Truckload (FTL)",geo:"US Domestic",tempReqs:[],sendNow:true,scheduled:false});
+  const [rates,   setRatesRaw]   = useState(draftData?.rates   || {rateFormat:"flat_linehaul",fscUploaded:false,fscVisible:true,calcAllin:true,oneRound:true,allowCreative:true,allowImdl:true,rateLock:true,acceptancePct:"98%",otdPct:"94%"});
+  const [award,   setAwardRaw]   = useState(draftData?.award   || {awardModel:"primary_backup",maxCarriers:"3",splitPct:60,assetPct:60,feedbackEnabled:true,feedbackType:"bracket"});
+  const [lanes,   setLanesRaw]   = useState(draftData?.lanes   || {laneMethod:"",laneFileUploaded:false,rawDataUploaded:false,termSheetUploaded:false,accessorialUploaded:false,loadingUploaded:false,deliveryUploaded:false,deductionsUploaded:false,proceduresUploaded:false,fscUploaded:false});
+  const [laneReq, setLaneReqRaw] = useState(draftData?.laneReq || {sopNotes:"",privateNotes:"",allowCarrierNotes:true});
+  const [cData,   setCDataRaw]   = useState(draftData?.cData   || {carriers:[]});
+  const [timeline,setTimelineRaw]= useState(draftData?.timeline || {twoRounds:false});
+  const [notifD,  setNotifRaw]   = useState(draftData?.notifD  || {emailSubject:"",emailBody:""});
 
   const mk = setter => (key,val) => setter(prev=>({...prev,[key]:val}));
   const setB=mk(setBasicsRaw); const setR=mk(setRatesRaw); const setA=mk(setAwardRaw);
@@ -1390,6 +1415,24 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
 
   const handleLaunch=()=>{setLaunched(true);onLaunched&&onLaunched(allData);};
 
+  const handleSaveDraft = () => {
+    const draft = {
+      id: draftData?.id || `draft-${Date.now()}`,
+      name: basics.name || "Untitled RFP",
+      step, pct,
+      completed: [...completed],
+      savedAt: new Date().toISOString(),
+      basics, rates, award, lanes, laneReq, cData, timeline, notifD,
+    };
+    // Save to localStorage for now (will sync to Supabase when we wire drafts)
+    const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+    const updated = [...existing.filter(d=>d.id!==draft.id), draft];
+    localStorage.setItem('rfplab_drafts', JSON.stringify(updated));
+    setLastSaved(draft.savedAt);
+    setDraftSaved(true);
+    setTimeout(()=>setDraftSaved(false), 2500);
+  };
+
   const renderStep=()=>{
     if(step===1) return <WStep1 data={basics} set={setB}/>;
     if(step===2) return <WStep2 data={rates}  set={setR}/>;
@@ -1404,41 +1447,93 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
   };
 
   if(launched) return (
-    <div className="wiz-overlay">
-      <div className="wiz-left" style={{justifyContent:"center",alignItems:"center"}}>
-        <div style={{padding:20,textAlign:"center"}}><RFPLabLogo dark size="sm"/><div className="wiz-logo-sub" style={{marginTop:8}}>Live</div></div>
+    <div style={{maxWidth:520,margin:"60px auto",textAlign:"center",padding:"0 32px"}}>
+      <div style={{fontSize:52,marginBottom:16}}>🎉</div>
+      <div style={{fontSize:22,fontWeight:700,color:C.navy,marginBottom:8}}>RFP Launched!</div>
+      <div style={{fontSize:14,color:C.gray,marginBottom:24,lineHeight:1.6}}>
+        <strong>{basics.name||"Your RFP"}</strong> is live. Invitations being sent to <strong>{cData.carriers?.length||0} carriers and brokers</strong>.
       </div>
-      <div className="wiz-body">
-        <div style={{maxWidth:520,margin:"60px auto",textAlign:"center",padding:"0 32px"}}>
-          <div style={{fontSize:52,marginBottom:16}}>🎉</div>
-          <div style={{fontSize:22,fontWeight:700,color:C.navy,marginBottom:8}}>RFP Launched!</div>
-          <div style={{fontSize:14,color:C.gray,marginBottom:24,lineHeight:1.6}}><strong>{basics.name||"Your RFP"}</strong> is live. Invitations being sent to <strong>{cData.carriers?.length||0} carriers and brokers</strong>.</div>
-          <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-            <button className="btn btn-primary" onClick={onClose}>← Back to Dashboard</button>
-          </div>
-        </div>
-      </div>
+      <button className="btn btn-primary" onClick={onClose}>← Back to Dashboard</button>
     </div>
   );
 
+  const stepLabel = WIZ_STEP_GROUPS.flatMap(g=>g.steps).find(s=>s.id===step)?.label;
+
   return (
-    <div className="wiz-overlay">
-      <WizNav step={step} completed={completed} onClose={onClose} builderRole={builderRole}/>
-      <div className="wiz-body">
-        <div className="wiz-topbar">
-          <div style={{fontSize:12,color:C.gray}}>Step {step} of 10 — {WIZ_STEP_GROUPS.flatMap(g=>g.steps).find(s=>s.id===step)?.label}</div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            {builderRole==="admin" && <span style={{fontSize:11,fontWeight:700,color:C.purple,background:C.purplt,padding:"2px 8px",borderRadius:4}}>Building for: {basics.shipper||"No shipper selected"}</span>}
-            <div style={{fontSize:11,color:C.gray}}>{pct}% complete</div>
+    <div style={{display:"flex",gap:0,minHeight:"calc(100vh - 50px)"}}>
+      {/* Left wizard nav — compact, fits inside content area */}
+      <div style={{width:200,minWidth:200,background:C.navy,borderRadius:"10px 0 0 10px",padding:"16px 0",flexShrink:0}}>
+        <div style={{padding:"0 14px 14px",borderBottom:"1px solid rgba(255,255,255,.08)",marginBottom:8}}>
+          <div style={{fontSize:10,fontWeight:700,color:C.sky,letterSpacing:1.5,textTransform:"uppercase"}}>RFP Builder</div>
+          {basics.name && <div style={{fontSize:12,fontWeight:600,color:"white",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{basics.name}</div>}
+          {builderRole==="admin" && <div style={{fontSize:9,fontWeight:700,color:C.sky,background:"rgba(74,159,200,.15)",padding:"2px 6px",borderRadius:4,marginTop:4,display:"inline-block"}}>ADMIN MODE</div>}
+        </div>
+        {/* Progress bar */}
+        <div style={{padding:"0 14px 12px",borderBottom:"1px solid rgba(255,255,255,.08)",marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+            <span style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>Progress</span>
+            <span style={{fontSize:10,fontWeight:700,color:C.sky}}>{pct}%</span>
+          </div>
+          <div style={{height:4,background:"rgba(255,255,255,.1)",borderRadius:2}}>
+            <div style={{height:4,background:C.sky,borderRadius:2,width:`${pct}%`,transition:"width .3s"}}/>
+          </div>
+          {lastSaved && (
+            <div style={{fontSize:9,color:"rgba(255,255,255,.3)",marginTop:5}}>
+              Saved {new Date(lastSaved).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}
+            </div>
+          )}
+        </div>
+        {/* Step list */}
+        {WIZ_STEP_GROUPS.map(g=>(
+          <div key={g.label}>
+            <div style={{fontSize:8,fontWeight:700,letterSpacing:1.5,color:"rgba(255,255,255,.2)",textTransform:"uppercase",padding:"6px 14px 2px"}}>{g.label}</div>
+            {g.steps.map(s=>{
+              const isAct=s.id===step, isDone=completed.has(s.id);
+              return (
+                <div key={s.id} onClick={()=>isDone&&goTo(s.id)}
+                  style={{display:"flex",alignItems:"center",gap:7,padding:"6px 14px",
+                    cursor:isDone?"pointer":"default",
+                    background:isAct?"rgba(74,159,200,.15)":"transparent",
+                    borderLeft:`2px solid ${isAct?C.sky:"transparent"}`}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,
+                    background:isDone?C.green:isAct?C.sky:"rgba(255,255,255,.1)",color:"white"}}>
+                    {isDone?"✓":s.id}
+                  </div>
+                  <span style={{fontSize:11,fontWeight:isAct?600:400,color:isAct?C.sky:isDone?"rgba(255,255,255,.7)":"rgba(255,255,255,.4)"}}>{s.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,.08)",marginTop:8}}>
+          <button onClick={onClose} style={{width:"100%",background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.12)",borderRadius:5,color:"rgba(255,255,255,.4)",fontSize:11,padding:"6px 0",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+            ✕ Exit
+          </button>
+        </div>
+      </div>
+
+      {/* Step content */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+        {/* Mini topbar */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",borderBottom:`1px solid ${C.grayli}`,background:C.white,borderRadius:"0 10px 0 0"}}>
+          <div style={{fontSize:12,color:C.gray}}>Step {step} of 10 — <strong style={{color:C.text}}>{stepLabel}</strong></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {draftSaved && <span style={{fontSize:11,color:C.green,fontWeight:600}}>✓ Draft saved</span>}
+            <button className="btn btn-outline btn-sm" onClick={handleSaveDraft}>💾 Save Draft</button>
           </div>
         </div>
-        <div className="wiz-progress"><div className="wiz-progress-fill" style={{width:`${pct}%`}}/></div>
-        <div className="wiz-content">
+
+        {/* Step body */}
+        <div style={{flex:1,overflowY:"auto",padding:"24px 28px"}}>
           {renderStep()}
+
           {step<10 && (
-            <div className="wiz-footer">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:20,borderTop:`1px solid ${C.grayli}`,marginTop:8}}>
               <button className="btn btn-outline" onClick={prev} disabled={step===1} style={{opacity:step===1?0.3:1}}>← Back</button>
-              <button className="btn btn-primary" onClick={next}>{step===9?"Review & Launch →":"Continue →"}</button>
+              <div style={{display:"flex",gap:8}}>
+                <button className="btn btn-outline btn-sm" onClick={handleSaveDraft}>💾 Save Draft</button>
+                <button className="btn btn-primary" onClick={next}>{step===9?"Review & Launch →":"Continue →"}</button>
+              </div>
             </div>
           )}
         </div>
@@ -2560,6 +2655,157 @@ function PlaceholderPage({ title, sub }) {
 }
 
 // ─── Simple dashboards ────────────────────────────────────────────────────────
+// ─── My RFPs Page — with drafts, progress, timestamps ────────────────────────
+function MyRFPsPage({ setPage, role }) {
+  const [drafts, setDrafts] = useState([]);
+  const [tab, setTab] = useState("active");
+
+  useEffect(() => {
+    // Load saved drafts from localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+      setDrafts(saved.sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt)));
+    } catch(e) { setDrafts([]); }
+  }, []);
+
+  const deleteDraft = (id) => {
+    const updated = drafts.filter(d => d.id !== id);
+    setDrafts(updated);
+    localStorage.setItem('rfplab_drafts', JSON.stringify(updated));
+  };
+
+  const statusBadge = (status) => {
+    const map = {
+      draft:   {bg:C.amberlt, color:C.amber,  label:"Draft"},
+      active:  {bg:C.greenlt, color:C.green,  label:"Active"},
+      awarded: {bg:C.ice,     color:C.steel,  label:"Awarded"},
+      closed:  {bg:C.offwhite,color:C.gray,   label:"Closed"},
+    };
+    const s = map[status] || map.draft;
+    return <span style={{background:s.bg,color:s.color,padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700}}>{s.label}</span>;
+  };
+
+  return (
+    <div>
+      <div className="section-header">
+        <div>
+          <div className="page-title">My RFPs</div>
+          <div className="page-sub">Active bids, drafts in progress, and completed awards</div>
+        </div>
+        <button className="btn btn-green" onClick={() => setPage("new_rfp")}>🚀 New RFP</button>
+      </div>
+
+      <div className="tab-bar">
+        {["active","drafts","awarded","closed"].map(t => (
+          <div key={t} className={`tab${tab===t?" active":""}`} onClick={()=>setTab(t)} style={{textTransform:"capitalize"}}>
+            {t}
+            {t==="drafts" && drafts.length > 0 && (
+              <span style={{background:C.amber,color:"white",borderRadius:20,fontSize:9,fontWeight:700,padding:"1px 6px",marginLeft:6}}>{drafts.length}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Drafts tab */}
+      {tab === "drafts" && (
+        <div>
+          {drafts.length === 0
+            ? <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.grayli}`}}>
+                <div style={{fontSize:32,marginBottom:10}}>📝</div>
+                <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>No drafts saved</div>
+                <div style={{fontSize:12,color:C.gray,marginBottom:16}}>Start building an RFP and click "Save Draft" to pick up where you left off.</div>
+                <button className="btn btn-primary" onClick={() => setPage("new_rfp")}>Start New RFP →</button>
+              </div>
+            : drafts.map(draft => {
+                const savedDate = new Date(draft.savedAt);
+                const ago = (() => {
+                  const mins = Math.floor((Date.now() - savedDate) / 60000);
+                  if (mins < 1) return "just now";
+                  if (mins < 60) return `${mins}m ago`;
+                  const hrs = Math.floor(mins / 60);
+                  if (hrs < 24) return `${hrs}h ago`;
+                  return savedDate.toLocaleDateString();
+                })();
+
+                return (
+                  <div key={draft.id} className="card" style={{marginBottom:10}}>
+                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{draft.name || "Untitled RFP"}</div>
+                        <div style={{fontSize:11,color:C.gray,marginTop:3}}>
+                          Step {draft.step} of 10 — {WIZ_STEP_GROUPS.flatMap(g=>g.steps).find(s=>s.id===draft.step)?.label}
+                          <span style={{margin:"0 6px",color:C.grayli}}>·</span>
+                          Last saved {ago}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                        <span style={{background:C.amberlt,color:C.amber,padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700}}>Draft</span>
+                        <button className="btn btn-ghost btn-sm" style={{color:C.red,fontSize:11}} onClick={() => deleteDraft(draft.id)}>✕ Delete</button>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div style={{marginBottom:10}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{fontSize:10,color:C.gray}}>Progress</span>
+                        <span style={{fontSize:10,fontWeight:700,color:C.steel}}>{draft.pct}%</span>
+                      </div>
+                      <div style={{height:6,background:C.grayli,borderRadius:3,overflow:"hidden"}}>
+                        <div style={{height:6,background:C.sky,borderRadius:3,width:`${draft.pct}%`,transition:"width .4s"}}/>
+                      </div>
+                    </div>
+
+                    {/* Step pills */}
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:12}}>
+                      {WIZ_STEP_GROUPS.flatMap(g=>g.steps).map(s => {
+                        const done = (draft.completed||[]).includes(s.id);
+                        const current = s.id === draft.step;
+                        return (
+                          <span key={s.id} style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                            background: done?C.greenlt : current?C.ice : C.offwhite,
+                            color: done?C.green : current?C.steel : C.gray,
+                            border: `1px solid ${done?C.green:current?C.sky:C.grayli}`}}>
+                            {done?"✓ ":""}{s.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{display:"flex",gap:8}}>
+                      <button className="btn btn-primary btn-sm" onClick={() => setPage("new_rfp")}>
+                        ✏️ Continue Building →
+                      </button>
+                      <span style={{fontSize:11,color:C.gray,alignSelf:"center"}}>
+                        Saved {savedDate.toLocaleDateString()} at {savedDate.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+        </div>
+      )}
+
+      {/* Active / Awarded / Closed tabs — real data from Supabase will populate these */}
+      {tab !== "drafts" && (
+        <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.grayli}`}}>
+          <div style={{fontSize:32,marginBottom:10}}>{tab==="active"?"📋":tab==="awarded"?"🏆":"📦"}</div>
+          <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>
+            No {tab} RFPs yet
+          </div>
+          <div style={{fontSize:12,color:C.gray,marginBottom:16}}>
+            {tab==="active"
+              ? "Launch your first RFP to start inviting carriers and collecting rates."
+              : tab==="awarded"
+                ? "Awarded RFPs will appear here once you finalize carrier selections."
+                : "Closed bids will archive here for reference."}
+          </div>
+          {tab==="active" && <button className="btn btn-primary" onClick={() => setPage("new_rfp")}>🚀 Build Your First RFP →</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Admin: User Management ───────────────────────────────────────────────────
 function AdminUserManagement() {
   const [users, setUsers] = useState([]);
@@ -2996,59 +3242,45 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
   };
 
   const renderPage = () => {
-    // RFP Wizard — full-screen overlay for admin and shipper
+    // RFP Wizard — now inside the shell, sidebar stays visible
     if (page === "new_rfp") {
       return (
         <RFPWizard
           builderRole={role}
           initialShipper={role === "shipper" ? displayName : ""}
           onClose={() => setPage("dashboard")}
-          onLaunched={(data) => {}}
+          onLaunched={() => setPage("rfps")}
         />
       );
     }
-    // Spot Load Board — available to all roles
     if (page === "spot") return <SpotBoard role={role} dbProfile={dbProfile}/>;
 
     if (role==="admin") {
       if (page==="dashboard") return <AdminDashboard setPage={setPage}/>;
-      if (page==="users")    return <AdminUserManagement/>;
-      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="admin"/>;
-      if (page==="rfps") return <PlaceholderPage title="All RFPs" sub="Platform-wide RFP list"/>;
+      if (page==="users")     return <AdminUserManagement/>;
+      if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="admin" dbProfile={dbProfile}/>;
+      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role}/>;
       return <PlaceholderPage title={page}/>;
     }
     if (role==="shipper") {
       if (page==="dashboard") return <ShipperDashboard setPage={setPage} dbProfile={dbProfile}/>;
-      if (page==="invite") return <InvitePage dbProfile={dbProfile}/>;
+      if (page==="invite")    return <InvitePage dbProfile={dbProfile}/>;
       if (page==="results" || page==="awards") return <ResultsPage bidSettings={bidSettings} dbProfile={dbProfile}/>;
-      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="shipper" dbProfile={dbProfile}/>;
-      if (page==="rfps") return <PlaceholderPage title="My RFPs"/>;
+      if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="shipper" dbProfile={dbProfile}/>;
+      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role}/>;
       return <PlaceholderPage title={page}/>;
     }
     if (role==="carrier") {
-      if (page==="event") return <EventPage carrierName={displayName} addLog={addLog} activityLog={activityLog} setPage={setPage} dbProfile={dbProfile}/>;
-      if (page==="bid") return <BidPage bidSettings={bidSettings} carrierName={displayName} addLog={addLog} dbProfile={dbProfile}/>;
-      if (page==="standing") return <StandingPage bidSettings={bidSettings} carrierName={displayName} dbProfile={dbProfile}/>;
-      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="carrier" dbProfile={dbProfile}/>;
+      if (page==="event")     return <EventPage carrierName={displayName} addLog={addLog} activityLog={activityLog} setPage={setPage} dbProfile={dbProfile}/>;
+      if (page==="bid")       return <BidPage bidSettings={bidSettings} carrierName={displayName} addLog={addLog} dbProfile={dbProfile}/>;
+      if (page==="standing")  return <StandingPage bidSettings={bidSettings} carrierName={displayName} dbProfile={dbProfile}/>;
+      if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="carrier" dbProfile={dbProfile}/>;
       if (page==="dashboard") return <CarrierDashboard setPage={setPage} bidSettings={bidSettings} dbProfile={dbProfile}/>;
       return <PlaceholderPage title={page}/>;
     }
   };
 
-  // The wizard renders as a full-screen overlay, bypassing the normal shell
-  const isWizard = page === "new_rfp";
-
   const roleLabels = { admin:"Admin Console", shipper: displayName, carrier: displayName };
-
-  // Wizard takes over the full screen — no sidebar/topbar wrapper
-  if (isWizard) {
-    return (
-      <>
-        <style>{css}</style>
-        {renderPage()}
-      </>
-    );
-  }
 
   return (
     <>
