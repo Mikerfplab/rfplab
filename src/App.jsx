@@ -1888,14 +1888,12 @@ function Sidebar({ role, page, setPage }) {
   const adminNav = [
     {section:"Platform"},
     {icon:"⬜",label:"Dashboard",key:"dashboard"},
+    {icon:"👥",label:"Users",key:"users"},
     {icon:"📋",label:"All RFPs",key:"rfps"},
     {icon:"🚀",label:"New RFP",key:"new_rfp"},
-    {icon:"📊",label:"Analytics",key:"analytics"},
     {icon:"📜",label:"Activity Log",key:"activity"},
     {section:"Spot Loads"},
     {icon:"⚡",label:"Spot Board",key:"spot"},
-    {icon:"🏢",label:"Shippers",key:"shippers"},
-    {icon:"🚛",label:"Carriers",key:"carriers_admin"},
   ];
   const shipperNav = [
     {section:"Contracted RFP"},
@@ -2547,6 +2545,174 @@ function PlaceholderPage({ title, sub }) {
 }
 
 // ─── Simple dashboards ────────────────────────────────────────────────────────
+// ─── Admin: User Management ───────────────────────────────────────────────────
+function AdminUserManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ email:'', full_name:'', company:'', role:'shipper' });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState('');
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => { loadUsers(); }, []);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    const { getAllUsers } = await import('./supabase.js');
+    const data = await getAllUsers();
+    setUsers(data);
+    setLoading(false);
+  };
+
+  const handleInvite = async () => {
+    if (!form.email || !form.full_name || !form.company) { setErr('All fields required'); return; }
+    setSending(true); setErr('');
+    const { sendUserInvite } = await import('./supabase.js');
+    const { error } = await sendUserInvite(form);
+    if (error) { setErr(error.message); setSending(false); return; }
+    setSent(true);
+    setSending(false);
+    setTimeout(() => { setSent(false); setModal(false); setForm({email:'',full_name:'',company:'',role:'shipper'}); loadUsers(); }, 2000);
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    const { updateUserRole } = await import('./supabase.js');
+    await updateUserRole(userId, newRole);
+    setUsers(prev => prev.map(u => u.id === userId ? {...u, role: newRole} : u));
+  };
+
+  const rolePillStyle = (r) => ({
+    display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:10, fontWeight:700,
+    background: r==='admin' ? C.navy : r==='shipper' ? C.green : C.amber,
+    color: 'white'
+  });
+
+  const filtered = filter === 'all' ? users : users.filter(u => u.role === filter);
+
+  return (
+    <div>
+      <div className="section-header">
+        <div>
+          <div className="page-title">User Management</div>
+          <div className="page-sub">Create and manage shipper and carrier accounts</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => { setModal(true); setErr(''); setSent(false); }}>
+          + Invite User
+        </button>
+      </div>
+
+      <div className="stat-grid">
+        <div className="stat-tile"><div className="stat-label">Total Users</div><div className="stat-value">{users.length}</div></div>
+        <div className="stat-tile"><div className="stat-label">Shippers</div><div className="stat-value">{users.filter(u=>u.role==='shipper').length}</div></div>
+        <div className="stat-tile"><div className="stat-label">Carriers</div><div className="stat-value">{users.filter(u=>u.role==='carrier').length}</div></div>
+        <div className="stat-tile"><div className="stat-label">Admins</div><div className="stat-value">{users.filter(u=>u.role==='admin').length}</div></div>
+      </div>
+
+      <div className="tab-bar">
+        {['all','shipper','carrier','admin'].map(f => (
+          <div key={f} className={`tab${filter===f?' active':''}`}
+            onClick={() => setFilter(f)}
+            style={{textTransform:'capitalize'}}>{f === 'all' ? 'All Users' : f+'s'}</div>
+        ))}
+      </div>
+
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        {loading
+          ? <div style={{padding:40,textAlign:'center',color:C.gray,fontSize:13}}>Loading users…</div>
+          : filtered.length === 0
+            ? <div style={{padding:40,textAlign:'center',color:C.gray,fontSize:13}}>
+                No {filter === 'all' ? '' : filter} users yet.{' '}
+                <span style={{color:C.steel,cursor:'pointer'}} onClick={() => setModal(true)}>Invite one →</span>
+              </div>
+            : <table>
+                <thead><tr>
+                  <th>Name</th><th>Email</th><th>Company</th><th>Role</th><th>Joined</th><th>Change Role</th>
+                </tr></thead>
+                <tbody>
+                  {filtered.map(u => (
+                    <tr key={u.id}>
+                      <td style={{fontWeight:600}}>{u.full_name || '—'}</td>
+                      <td style={{color:C.gray,fontSize:12}}>{u.email}</td>
+                      <td>{u.company || '—'}</td>
+                      <td><span style={rolePillStyle(u.role)}>{u.role}</span></td>
+                      <td style={{color:C.gray,fontSize:11}}>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <select
+                          value={u.role}
+                          onChange={e => handleRoleChange(u.id, e.target.value)}
+                          style={{fontSize:11,padding:'4px 6px',width:'auto'}}>
+                          <option value="shipper">Shipper</option>
+                          <option value="carrier">Carrier</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>}
+      </div>
+
+      {/* Invite Modal */}
+      {modal && (
+        <div className="modal-overlay" onClick={() => setModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Invite New User</div>
+              <button className="btn btn-ghost" onClick={() => setModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="alert info" style={{marginBottom:14}}>
+                The user will receive an email with a secure link to create their password and access their portal. Their role is set by you — they cannot change it.
+              </div>
+              {err && <div className="alert" style={{background:C.redlt,color:C.red,borderLeft:`3px solid ${C.red}`,marginBottom:12}}>{err}</div>}
+              {sent && <div className="alert" style={{background:C.greenlt,color:C.green,borderLeft:`3px solid ${C.green}`,marginBottom:12}}>✓ Invite sent! They'll receive an email shortly.</div>}
+
+              <div className="form-group">
+                <label>Role</label>
+                <div style={{display:'flex',gap:8,marginTop:4}}>
+                  {[['shipper','🏢 Shipper'],['carrier','🚛 Carrier / Broker'],['admin','⚙️ Admin']].map(([v,l]) => (
+                    <div key={v} onClick={() => setForm(f=>({...f,role:v}))}
+                      style={{flex:1,padding:'9px 8px',border:`2px solid ${form.role===v?C.sky:C.grayli}`,
+                        borderRadius:7,textAlign:'center',cursor:'pointer',fontSize:11,fontWeight:form.role===v?700:500,
+                        background:form.role===v?C.ice:'white'}}>
+                      {l}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <input value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} placeholder="First Last"/>
+                </div>
+                <div className="form-group">
+                  <label>Company</label>
+                  <input value={form.company} onChange={e=>setForm(f=>({...f,company:e.target.value}))} placeholder="Company name"/>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="user@company.com"/>
+              </div>
+              <div style={{background:C.offwhite,border:`1px solid ${C.grayli}`,borderRadius:8,padding:'10px 14px',fontSize:12,color:C.gray,marginTop:4}}>
+                <strong style={{color:C.text}}>What happens next:</strong> They'll get an email to set their password. When they click the link, they land on the RFPlab login page with their role pre-set as <strong>{form.role}</strong>. They cannot self-upgrade to admin.
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleInvite} disabled={sending||sent}>
+                {sending ? '⏳ Sending…' : sent ? '✓ Sent!' : `📧 Send ${form.role} Invite`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminDashboard({ setPage }) {
   return (
     <div>
@@ -2599,46 +2765,84 @@ function AdminDashboard({ setPage }) {
   );
 }
 
-function ShipperDashboard({ setPage }) {
+function ShipperDashboard({ setPage, dbProfile }) {
+  const name = dbProfile?.company || dbProfile?.full_name || "Your Company";
+  const isReal = !!dbProfile; // real logged-in user vs demo
+
+  if (isReal) {
+    // Clean dashboard for real users — no hardcoded Spindrift data
+    return (
+      <div>
+        <div className="section-header">
+          <div>
+            <div className="page-title">Welcome, {name}</div>
+            <div className="page-sub">Procurement Hub — choose how you want to move freight today</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+          <div style={{background:`linear-gradient(135deg,${C.navy},${C.slate})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("new_rfp")}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📋</div>
+              <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier bid</div></div>
+            </div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Run a structured bid across all your lanes. Set award strategy, invite carriers, and build your routing guide.</div>
+            <button className="btn btn-sm btn-green" onClick={e=>{e.stopPropagation();setPage("new_rfp");}}>🚀 Start New RFP →</button>
+          </div>
+          <div style={{background:`linear-gradient(135deg,#4C1D95,#6D28D9)`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("spot")}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+              <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⚡</div>
+              <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Spot Load</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Timed quote window</div></div>
+            </div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a single load and award to the best quote in real time. Quotes close automatically when your window expires.</div>
+            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.purple,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post a Load →</button>
+          </div>
+        </div>
+        <div className="card" style={{textAlign:"center",padding:"36px 20px",border:`2px dashed ${C.grayli}`}}>
+          <div style={{fontSize:32,marginBottom:12}}>📋</div>
+          <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>No RFPs yet</div>
+          <div style={{fontSize:12,color:C.gray,marginBottom:16}}>Create your first RFP to start inviting carriers and collecting rates.</div>
+          <button className="btn btn-primary" onClick={()=>setPage("new_rfp")}>🚀 Build Your First RFP →</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Demo mode — keep the Spindrift example for illustration
   return (
     <div>
       <div className="section-header">
-        <div><div className="page-title">Procurement Hub</div><div className="page-sub">Spindrift Beverages · Choose your procurement method</div></div>
+        <div><div className="page-title">Procurement Hub</div><div className="page-sub">Spindrift Beverages · Demo mode</div></div>
       </div>
-
-      {/* Procurement mode selector */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
         <div style={{background:`linear-gradient(135deg,${C.navy},${C.slate})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("rfps")}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📋</div>
             <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier bid</div></div>
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Run a structured bid across all your lanes. Set award strategy, invite carriers, analyze results, and build routing guides.</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Structured bid across all your lanes with award modeling and routing guides.</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-sm" style={{background:"rgba(255,255,255,.1)",color:"white",border:"1px solid rgba(255,255,255,.2)"}} onClick={e=>{e.stopPropagation();setPage("rfps");}}>View RFPs</button>
-            <button className="btn btn-sm" style={{background:C.green,color:"white",border:"none"}} onClick={e=>{e.stopPropagation();setPage("new_rfp");}}>🚀 New RFP</button>
+            <button className="btn btn-sm btn-green" onClick={e=>{e.stopPropagation();setPage("new_rfp");}}>🚀 New RFP</button>
           </div>
         </div>
         <div style={{background:`linear-gradient(135deg,#4C1D95,#6D28D9)`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("spot")}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⚡</div>
-            <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Spot Load Auction</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Timed quote window</div></div>
+            <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Spot Load Auction</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Timed quotes</div></div>
           </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a single load, set a timed window, and award to the best quote in real time. 2 live loads right now.</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a load, set a timed window, award to the best quote in real time.</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-sm" style={{background:"rgba(255,255,255,.1)",color:"white",border:"1px solid rgba(255,255,255,.2)"}} onClick={e=>{e.stopPropagation();setPage("spot");}}>Spot Board</button>
             <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.purple,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post Load</button>
           </div>
         </div>
       </div>
-
       <div className="stat-grid">
         <div className="stat-tile"><div className="stat-label">Active RFP Lanes</div><div className="stat-value">97</div><div className="stat-sub">May–Aug 2026</div></div>
         <div className="stat-tile"><div className="stat-label">RFP Carriers In</div><div className="stat-value">11<span style={{fontSize:14}}>/13</span></div></div>
-        <div className="stat-tile"><div className="stat-label">Spot Loads Live</div><div className="stat-value">2</div><div className="stat-sub"><span className="live-dot" style={{display:"inline-block",marginRight:4}}/>accepting quotes</div></div>
+        <div className="stat-tile"><div className="stat-label">Spot Loads Live</div><div className="stat-value">2</div></div>
         <div className="stat-tile"><div className="stat-label">Spot Awarded Today</div><div className="stat-value">1</div></div>
       </div>
-
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:16}}>
         <div className="card"><div className="card-header"><div className="card-title">RFP Bid Timeline — May–Aug 2026</div></div>
           <div className="timeline">
@@ -2657,7 +2861,8 @@ function ShipperDashboard({ setPage }) {
   );
 }
 
-function CarrierDashboard({ setPage, bidSettings }) {
+
+function CarrierDashboard({ setPage, bidSettings, dbProfile }) {
   const myLanes = LANES.filter(l=>l.bids.some(b=>b.carrier==="ROAR Logistics"));
   const r1 = myLanes.filter(l=>l.bids[0].carrier==="ROAR Logistics").length;
   return (
@@ -2697,13 +2902,15 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
   const [role, setRole] = useState(initialRole || dbProfile?.role || "shipper");
   const [page, setPage] = useState(role === "carrier" ? "event" : "dashboard");
   const [bidSettings, setBidSettings] = useState({...DEFAULT_BID_SETTINGS});
-  const [activityLog, setActivityLog] = useState(SEED_LOG);
+
+  // Real users get empty activity log — data comes from Supabase
+  // Demo mode (no dbUser) keeps the seed data for illustration
+  const [activityLog, setActivityLog] = useState(dbUser ? [] : SEED_LOG);
   const nextId = useState(SEED_LOG.length + 1);
 
-  // If a real logged-in user exists, lock them to their actual role
-  // (admins can still switch for demo/support purposes)
   const isLocked = dbProfile && dbProfile.role !== 'admin';
-  const displayName = dbProfile?.company || dbProfile?.full_name || (role === "carrier" ? "ROAR Logistics" : role === "shipper" ? "Spindrift Beverages" : "RFPlab Admin");
+  const displayName = dbProfile?.company || dbProfile?.full_name ||
+    (role === "carrier" ? "ROAR Logistics" : role === "shipper" ? "Spindrift Beverages" : "RFPlab Admin");
 
   const handleSignOut = async () => {
     const { signOut } = await import('./supabase.js');
@@ -2718,7 +2925,6 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
     ]);
   };
 
-  // Auto-log page-view events
   const handleSetPage = (p) => {
     if (role === "carrier" && p === "event") {
       addLog({ carrier: displayName, event:"invite_viewed", detail:"Event page viewed", actor:"carrier" });
@@ -2727,7 +2933,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
   };
 
   const handleSetRole = (r) => {
-    if (isLocked) return; // real users can't switch roles
+    if (isLocked) return;
     setRole(r);
     setPage(r === "carrier" ? "event" : "dashboard");
   };
@@ -2738,35 +2944,36 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       return (
         <RFPWizard
           builderRole={role}
-          initialShipper={role === "shipper" ? "Spindrift Beverages" : ""}
+          initialShipper={role === "shipper" ? displayName : ""}
           onClose={() => setPage("dashboard")}
           onLaunched={(data) => {}}
         />
       );
     }
     // Spot Load Board — available to all roles
-    if (page === "spot") return <SpotBoard role={role}/>;
+    if (page === "spot") return <SpotBoard role={role} dbProfile={dbProfile}/>;
 
     if (role==="admin") {
       if (page==="dashboard") return <AdminDashboard setPage={setPage}/>;
+      if (page==="users")    return <AdminUserManagement/>;
       if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="admin"/>;
       if (page==="rfps") return <PlaceholderPage title="All RFPs" sub="Platform-wide RFP list"/>;
       return <PlaceholderPage title={page}/>;
     }
     if (role==="shipper") {
-      if (page==="dashboard") return <ShipperDashboard setPage={setPage}/>;
-      if (page==="invite") return <InvitePage/>;
-      if (page==="results" || page==="awards") return <ResultsPage bidSettings={bidSettings}/>;
-      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="shipper"/>;
+      if (page==="dashboard") return <ShipperDashboard setPage={setPage} dbProfile={dbProfile}/>;
+      if (page==="invite") return <InvitePage dbProfile={dbProfile}/>;
+      if (page==="results" || page==="awards") return <ResultsPage bidSettings={bidSettings} dbProfile={dbProfile}/>;
+      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="shipper" dbProfile={dbProfile}/>;
       if (page==="rfps") return <PlaceholderPage title="My RFPs"/>;
       return <PlaceholderPage title={page}/>;
     }
     if (role==="carrier") {
-      if (page==="event") return <EventPage carrierName="ROAR Logistics" addLog={addLog} activityLog={activityLog} setPage={setPage}/>;
-      if (page==="bid") return <BidPage bidSettings={bidSettings} carrierName="ROAR Logistics" addLog={addLog}/>;
-      if (page==="standing") return <StandingPage bidSettings={bidSettings} carrierName="ROAR Logistics"/>;
-      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="carrier"/>;
-      if (page==="dashboard") return <CarrierDashboard setPage={setPage} bidSettings={bidSettings}/>;
+      if (page==="event") return <EventPage carrierName={displayName} addLog={addLog} activityLog={activityLog} setPage={setPage} dbProfile={dbProfile}/>;
+      if (page==="bid") return <BidPage bidSettings={bidSettings} carrierName={displayName} addLog={addLog} dbProfile={dbProfile}/>;
+      if (page==="standing") return <StandingPage bidSettings={bidSettings} carrierName={displayName} dbProfile={dbProfile}/>;
+      if (page==="activity") return <ActivityLogPage activityLog={activityLog} viewerRole="carrier" dbProfile={dbProfile}/>;
+      if (page==="dashboard") return <CarrierDashboard setPage={setPage} bidSettings={bidSettings} dbProfile={dbProfile}/>;
       return <PlaceholderPage title={page}/>;
     }
   };
