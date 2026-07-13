@@ -1,5 +1,53 @@
 // RFPlab v2.1 — build 20260713-1906
 import { useState, useEffect, useRef } from "react";
+// ─── Upload file to Supabase Storage ─────────────────────────────────────────
+async function uploadToStorage(file, path) {
+  const { supabase } = await import('./supabase.js');
+  const { data, error } = await supabase.storage
+    .from('rfp-docs')
+    .upload(path, file, { upsert: true });
+  if (error) throw error;
+  return data;
+}
+
+// ─── Parse CSV/Excel lane file into lane rows ─────────────────────────────────
+function parseLaneCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g,'_'));
+  const col = (...names) => names.map(n => headers.indexOf(n)).find(i => i >= 0) ?? -1;
+
+  const laneIdCol  = col('lane_id','lane','id','lane_code');
+  const origCityCol= col('origin_city','orig_city','origin','from_city','from');
+  const origStCol  = col('origin_state','orig_state','from_state');
+  const origZipCol = col('origin_zip','orig_zip','from_zip');
+  const destCityCol= col('destination_city','dest_city','destination','to_city','to');
+  const destStCol  = col('destination_state','dest_state','to_state');
+  const destZipCol = col('destination_zip','dest_zip','to_zip');
+  const modeCol    = col('mode','equipment','equipment_type');
+  const volCol     = col('volume','vol','monthly_volume','estimated_volume','loads_per_month');
+  const milesCol   = col('miles','distance','mileage');
+  const typeCol    = col('type','direction','lane_type');
+
+  return lines.slice(1).map((line, i) => {
+    const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g,''));
+    return {
+      lane_code:  cols[laneIdCol]  || `LANE-${String(i+1).padStart(4,'0')}`,
+      orig_city:  cols[origCityCol]|| '',
+      orig_state: cols[origStCol]  || '',
+      orig_zip:   cols[origZipCol] || '',
+      dest_city:  cols[destCityCol]|| '',
+      dest_state: cols[destStCol]  || '',
+      dest_zip:   cols[destZipCol] || '',
+      mode:       cols[modeCol]    || 'Dry Van',
+      volume:     parseFloat(cols[volCol]) || null,
+      miles:      parseInt(cols[milesCol]) || null,
+      type:       cols[typeCol]    || 'OUTBOUND',
+    };
+  }).filter(l => l.orig_city || l.dest_city);
+}
+
+
 
 // ─── RFPlab.com Brand Tokens ──────────────────────────────────────────────────
 // Matched to rfplab.com website: dark teal backgrounds, bright green accent,
@@ -1237,6 +1285,7 @@ function WStep4({ data, set }) {
     set(key, true);
     set(key+"_name", file.name);
     set(key+"_size", file.size);
+    set(key+"_file", file); // store actual File object for upload on launch
   };
   return (
     <div>
@@ -1877,7 +1926,49 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
       };
       const { data: rfpData, error: rfpError } = await createRFP(rfpPayload);
       if (rfpError) console.warn("Supabase RFP error:", rfpError.message);
-      else rfpId = rfpData?.id;
+      else {
+        rfpId = rfpData?.id;
+
+        // 2a. Upload lane file to Supabase Storage and parse lanes
+        const laneFile = lanes.laneFileUploaded_file || lanes.rawDataUploaded_file;
+        if (laneFile && rfpId) {
+          try {
+            // Upload file to storage
+            await uploadToStorage(laneFile, `${rfpId}/lane_file_${laneFile.name}`);
+
+            // Parse CSV and insert lane rows
+            if (laneFile.name.endsWith('.csv') || laneFile.type === 'text/csv') {
+              const text = await laneFile.text();
+              const laneRows = parseLaneCSV(text);
+              if (laneRows.length > 0) {
+                const { supabase: sb } = await import('./supabase.js');
+                const rowsWithRfp = laneRows.map(r => ({ ...r, rfp_id: rfpId }));
+                // Insert in batches of 100
+                for (let i = 0; i < rowsWithRfp.length; i += 100) {
+                  await sb.from('lanes').insert(rowsWithRfp.slice(i, i+100));
+                }
+                console.log(`✓ Inserted ${laneRows.length} lanes`);
+              }
+            }
+          } catch(e) {
+            console.warn("Lane file upload/parse error:", e.message);
+          }
+        }
+
+        // 2b. Upload supporting docs to storage
+        const docKeys = ['termSheetUploaded','fscUploaded','accessorialUploaded',
+                         'loadingUploaded','deliveryUploaded','deductionsUploaded','proceduresUploaded'];
+        for (const key of docKeys) {
+          const f = lanes[key + '_file'];
+          if (f && rfpId) {
+            try {
+              await uploadToStorage(f, `${rfpId}/${key}_${f.name}`);
+            } catch(e) {
+              console.warn(`Upload failed for ${key}:`, e.message);
+            }
+          }
+        }
+      }
     } catch(e) {
       console.warn("Could not save RFP to Supabase:", e.message);
     }
