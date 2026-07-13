@@ -12,20 +12,22 @@ const C = {
 }
 
 function Logo() {
-  const bW=148,bH=74,lW=22,tot=bW+6+lW,sc=0.6
+  const bW=210, bH=130, gap=10, labW=32, sc=0.44;
+  const tot = bW + gap + labW;
+  const labCX = bW + gap + labW/2, labCY = bH/2;
   return (
     <svg width={tot*sc} height={bH*sc} viewBox={`0 0 ${tot} ${bH}`}
       xmlns="http://www.w3.org/2000/svg" style={{display:"block",margin:"0 auto 10px"}}>
-      <rect x={0} y={0} width={bW} height={bH} fill={C.black}/>
-      <text x={bW/2} y={bH*.735} textAnchor="middle"
-        fontFamily="'Arial Black',Arial,sans-serif" fontWeight="900"
-        fontSize="44" letterSpacing="10" fill={C.cream}>R F P</text>
-      <text x={bW+6+lW/2} y={bH*.5} textAnchor="middle" dominantBaseline="central"
-        fontFamily="'Arial Black',Arial,sans-serif" fontWeight="900"
-        fontSize="18" letterSpacing="3" fill={C.black}
-        transform={`rotate(90,${bW+6+lW/2},${bH*.5})`}>LAB</text>
+      <rect x={0} y={0} width={bW} height={bH} fill="#111111"/>
+      <text x={bW/2} y={bH*0.72} textAnchor="middle"
+        fontFamily="'Arial Black','Impact','Franklin Gothic Heavy',Arial,sans-serif"
+        fontWeight="900" fontSize="72" letterSpacing="14" fill="#F5F0E8">R F P</text>
+      <text x={labCX} y={labCY} textAnchor="middle" dominantBaseline="central"
+        fontFamily="'Arial Black','Impact','Franklin Gothic Heavy',Arial,sans-serif"
+        fontWeight="900" fontSize="26" letterSpacing="5" fill="#111111"
+        transform={`rotate(90,${labCX},${labCY})`}>LAB</text>
     </svg>
-  )
+  );
 }
 
 const css = `
