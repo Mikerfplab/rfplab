@@ -59,22 +59,22 @@ function fmtDate(dateStr) {
   if (!dateStr) return "—";
   try {
     const d = new Date(dateStr + (dateStr.length === 10 ? "T12:00:00" : ""));
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
   } catch { return dateStr; }
 }
 function fmtDateShort(dateStr) {
   if (!dateStr) return "—";
   try {
     const d = new Date(dateStr + (dateStr.length === 10 ? "T12:00:00" : ""));
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" });
   } catch { return dateStr; }
 }
 function fmtDateTime(dateStr) {
   if (!dateStr) return "—";
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-           " at " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" }) +
+           " at " + d.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit" });
   } catch { return dateStr; }
 }
 
@@ -1640,7 +1640,7 @@ function WStep10({ allData, onLaunch }) {
           <div style={{padding:"24px 28px",background:"white",maxWidth:580,margin:"0 auto"}}>
             <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${C.grayli}`}}><RFPLabLogo dark={false} size="sm"/></div>
             <div style={{fontSize:15,fontWeight:700,color:C.navy,marginBottom:4}}>{rfpName}</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:16}}>{shipper} · {allData.basics.modes?.join(", ")||"Truckload"} · Rates due: {deadline}</div>
+            <div style={{fontSize:12,color:C.gray,marginBottom:16}}>{shipper} · {allData.basics.modes?.join(", ")||"Truckload"} · Rates due: {fmtDateShort(deadline)}</div>
             <div style={{fontSize:13,color:C.text,lineHeight:1.75,marginBottom:20}}>{emailBody}</div>
             <div style={{textAlign:"center",margin:"20px 0"}}>
               <div style={{display:"inline-block",background:C.navy,color:"white",padding:"11px 28px",borderRadius:8,fontWeight:700,fontSize:14}}>View Bid &amp; Submit Rates →</div>
@@ -1648,12 +1648,12 @@ function WStep10({ allData, onLaunch }) {
             </div>
             <div style={{background:C.off,border:`1px solid ${C.grayli}`,borderRadius:8,padding:"12px 16px",marginBottom:20}}>
               <div style={{fontSize:10,fontWeight:700,color:C.gray,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>Key Dates</div>
-              {[["Rates Due",allData.timeline.rateDeadline||"—"],["Awards Sent",allData.timeline.awardDate||"—"],["Go Live",allData.timeline.goLiveDate||"—"]].map(([k,v])=>(
-                <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderBottom:`1px solid ${C.grayli}`}}><span style={{color:C.gray}}>{k}</span><span style={{fontWeight:600}}>{v}</span></div>
+              {[["Rates Due",allData.timeline.rateDeadline],["Awards Sent",allData.timeline.awardDate],["Go Live",allData.timeline.goLiveDate]].map(([k,v])=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderBottom:`1px solid ${C.grayli}`}}><span style={{color:C.gray}}>{k}</span><span style={{fontWeight:600}}>{fmtDateShort(v)}</span></div>
               ))}
             </div>
             <div style={{fontSize:11,color:C.gray,borderTop:`1px solid ${C.grayli}`,paddingTop:14,lineHeight:1.7}}>
-              You received this because {shipper} invited you via RFPlab. Questions? Reply to this email.<br/>
+              You received this because {shipper} invited you via RFPlab. Questions? Please email Mike@rfplab.com<br/>
               © 2026 RFPlab · rfplab.com
             </div>
           </div>
@@ -1679,14 +1679,14 @@ function WStep10({ allData, onLaunch }) {
 }
 
 // ── RFPWizard container (used by both shipper and admin) ──────────────────────
-function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShipper = "", draftData = null }) {
+function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShipper = "", draftData = null, dbProfile = null }) {
   const [step, setStep] = useState(draftData?.step || 1);
   const [completed, setCompleted] = useState(new Set(draftData?.completed || []));
   const [launched, setLaunched] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [lastSaved, setLastSaved] = useState(draftData?.savedAt || null);
 
-  const [basics,  setBasicsRaw]  = useState(draftData?.basics  || {name:"",shipper:initialShipper||"",modes:[],geos:["US Domestic"],term:"",startDate:"",endDate:"",maxWeight:"44,500",loadType:"Full Truckload (FTL)",geo:"US Domestic",tempReqs:[],sendNow:true,scheduled:false});
+  const [basics,  setBasicsRaw]  = useState(draftData?.basics  || {name:"",shipper:initialShipper||"",shipperId:dbProfile?.id||null,modes:[],geos:["US Domestic"],term:"",startDate:"",endDate:"",maxWeight:"44,500",loadType:"Full Truckload (FTL)",geo:"US Domestic",tempReqs:[],sendNow:true,scheduled:false});
   const [rates,   setRatesRaw]   = useState(draftData?.rates   || {rateFormat:"flat_linehaul",fscUploaded:false,fscVisible:true,calcAllin:true,oneRound:true,allowCreative:true,allowImdl:true,rateLock:true});
   const [award,   setAwardRaw]   = useState(draftData?.award   || {awardModel:"primary_backup",maxCarriers:"3",splitPct:60,assetPct:60,feedbackEnabled:true,feedbackType:"bracket"});
   const [lanes,   setLanesRaw]   = useState(draftData?.lanes   || {laneMethod:"",laneFileUploaded:false,rawDataUploaded:false,termSheetUploaded:false,accessorialUploaded:false,loadingUploaded:false,deliveryUploaded:false,deductionsUploaded:false,proceduresUploaded:false,fscUploaded:false});
@@ -1702,49 +1702,112 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
 
   const allData={basics:{...basics,setSelf:setB},rates,award,lanes,laneReq,carriers:cData,timeline,notifs:notifD};
 
-  const goTo=(n)=>{setCompleted(prev=>{const s=new Set(prev);s.add(step);return s;});setStep(n);};
+  // Auto-save draft on every step transition
+  const saveDraftSilent = (currentStep, currentBasics, currentRates, currentAward,
+    currentLanes, currentLaneReq, currentCData, currentTimeline, currentNotifD, currentCompleted) => {
+    try {
+      const draftId = draftData?.id || (currentBasics.name
+        ? `draft-${currentBasics.name.replace(/\s+/g,"-").toLowerCase()}`
+        : `draft-autosave`);
+      const draft = {
+        id:        draftId,
+        name:      currentBasics.name || "Untitled RFP",
+        shipper:   currentBasics.shipper || "",
+        step:      currentStep,
+        pct:       Math.round(((currentStep-1)/10)*100),
+        completed: [...currentCompleted],
+        savedAt:   new Date().toISOString(),
+        basics:    { ...currentBasics },
+        rates:     { ...currentRates },
+        award:     { ...currentAward },
+        lanes:     { ...currentLanes },
+        laneReq:   { ...currentLaneReq },
+        cData:     { ...currentCData, carriers: currentCData.carriers || [] },
+        timeline:  { ...currentTimeline },
+        notifD:    { ...currentNotifD },
+      };
+      const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+      // Always update same draft — never create new ones (keep 1 draft per RFP)
+      const updated = [...existing.filter(d=>d.id!==draft.id), draft];
+      localStorage.setItem('rfplab_drafts', JSON.stringify(updated));
+    } catch(e) {}
+  };
+
+  const goTo=(n)=>{
+    const newCompleted = new Set(completed);
+    newCompleted.add(step);
+    setCompleted(newCompleted);
+    setStep(n);
+    // Auto-save on every step change
+    saveDraftSilent(n, basics, rates, award, lanes, laneReq, cData, timeline, notifD, newCompleted);
+  };
   const next=()=>{if(step<10)goTo(step+1);};
   const prev=()=>{if(step>1)setStep(step-1);};
   const pct=Math.round(((step-1)/10)*100);
 
   const handleLaunch = async () => {
-    // Save to Supabase if connected
+    let rfpId = null;
+
+    // 1. Save RFP to Supabase with shipper_id
     try {
       const { createRFP } = await import('./supabase.js');
-      if (createRFP) {
-        const rfpPayload = {
-          name:           basics.name || "Untitled RFP",
-          shipper_name:   basics.shipper || "",
-          status:         "active",
-          modes:          basics.modes,
-          term:           basics.term,
-          start_date:     basics.startDate || null,
-          end_date:       basics.endDate   || null,
-          rate_format:    rates.rateFormat,
-          award_model:    award.awardModel,
-          max_carriers_per_lane: parseInt(award.maxCarriers) || 3,
-          asset_pct:      award.assetPct || 60,
-          feedback_enabled: award.feedbackEnabled,
-          feedback_type:  award.feedbackType,
-          two_rounds:     timeline.twoRounds || false,
-          invite_date:    timeline.inviteDate   || null,
-          rate_deadline:  timeline.rateDeadline || null,
-          award_date:     timeline.awardDate    || null,
-          go_live_date:   timeline.goLiveDate   || null,
-          notes:          laneReq.sopNotes || "",
-        };
-        await createRFP(rfpPayload);
-      }
+      const rfpPayload = {
+        name:           basics.name || "Untitled RFP",
+        shipper_id:     basics.shipperId || null,   // must be set for getRFPs to find it
+        shipper_name:   basics.shipper || "",
+        status:         "active",
+        modes:          basics.modes || [],
+        term:           basics.term || "",
+        start_date:     basics.startDate || null,
+        end_date:       basics.endDate   || null,
+        rate_format:    rates.rateFormat || "flat_linehaul",
+        award_model:    award.awardModel || "primary_backup",
+        max_carriers_per_lane: parseInt(award.maxCarriers) || 3,
+        asset_pct:      award.assetPct || 60,
+        feedback_enabled: award.feedbackEnabled || false,
+        feedback_type:  award.feedbackType || "bracket",
+        two_rounds:     timeline.twoRounds || false,
+        invite_date:    timeline.inviteDate   || null,
+        rate_deadline:  timeline.rateDeadline || null,
+        award_date:     timeline.awardDate    || null,
+        go_live_date:   timeline.goLiveDate   || null,
+        notes:          laneReq.sopNotes || "",
+      };
+      const { data: rfpData, error: rfpError } = await createRFP(rfpPayload);
+      if (rfpError) console.warn("Supabase RFP error:", rfpError.message);
+      else rfpId = rfpData?.id;
     } catch(e) {
       console.warn("Could not save RFP to Supabase:", e.message);
     }
 
-    // Remove draft from localStorage since it launched
-    const draftId = draftData?.id;
-    if (draftId) {
-      const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
-      localStorage.setItem('rfplab_drafts', JSON.stringify(existing.filter(d=>d.id!==draftId)));
+    // 2. Send invite emails to all carriers
+    const carriers = cData.carriers || [];
+    if (carriers.length > 0) {
+      try {
+        const { sendRFPInvitesToAll } = await import('./email.js');
+        const rfpDetails = {
+          shipperName: basics.shipper || "RFPlab Shipper",
+          rfpName:     basics.name || "RFP 2026",
+          lanes:       `${(lanes.laneFileUploaded||lanes.rawDataUploaded) ? "See attached" : "TBD"}`,
+          deadline:    fmtDateShort(timeline.rateDeadline) || "See email for details",
+          bidUrl:      `${window.location.origin}?role=carrier`,
+        };
+        const result = await sendRFPInvitesToAll(carriers, rfpDetails);
+        console.log(`Invites: ${result.sent} sent, ${result.failed} failed`);
+      } catch(e) {
+        console.warn("Could not send invite emails:", e.message);
+      }
     }
+
+    // 3. Clear draft from localStorage (it's now live)
+    const draftId = draftData?.id ||
+      (basics.name ? `draft-${basics.name.replace(/\s+/g,"-").toLowerCase()}` : "draft-autosave");
+    try {
+      const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+      localStorage.setItem('rfplab_drafts', JSON.stringify(
+        existing.filter(d => d.id !== draftId && d.name !== basics.name)
+      ));
+    } catch(e) {}
 
     setLaunched(true);
     onLaunched && onLaunched(allData);
@@ -1752,15 +1815,16 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
 
   const handleSaveDraft = () => {
     const now = new Date().toISOString();
+    // Stable ID: prefer existing draft ID, then name-based, then single fallback
+    const draftId = draftData?.id ||
+      (basics.name ? `draft-${basics.name.replace(/\s+/g,"-").toLowerCase()}` : "draft-autosave");
     const draft = {
-      id:        draftData?.id || `draft-${Date.now()}`,
+      id:        draftId,
       name:      basics.name || "Untitled RFP",
       shipper:   basics.shipper || "",
-      step,
-      pct,
+      step, pct,
       completed: [...completed],
       savedAt:   now,
-      // Save full state of every step
       basics:    { ...basics },
       rates:     { ...rates },
       award:     { ...award },
@@ -1772,8 +1836,9 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
     };
     try {
       const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
-      const updated  = [...existing.filter(d=>d.id!==draft.id), draft];
-      localStorage.setItem('rfplab_drafts', JSON.stringify(updated));
+      // Filter out any draft with same id OR same name (prevent duplicates)
+      const filtered = existing.filter(d => d.id !== draftId && d.name !== draft.name);
+      localStorage.setItem('rfplab_drafts', JSON.stringify([...filtered, draft]));
       setLastSaved(now);
       setDraftSaved(true);
       setTimeout(()=>setDraftSaved(false), 2500);
@@ -5053,6 +5118,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
         <RFPWizard
           builderRole={role}
           initialShipper={role === "shipper" ? displayName : ""}
+          dbProfile={dbProfile}
           onClose={() => setPage("dashboard")}
           onLaunched={() => setPage("rfps")}
         />
