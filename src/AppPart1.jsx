@@ -2451,7 +2451,7 @@ function RFPLabLogo({ dark = false, size = "md" }) {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({ role, page, setPage }) {
+function Sidebar({ role, page, setPage, dbProfile = null }) {
   const adminNav = [
     {section:"Platform"},
     {icon:"⬜",label:"Dashboard",key:"dashboard"},

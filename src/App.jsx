@@ -2947,7 +2947,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
     <>
       <style>{css}</style>
       <div className="app">
-        <Sidebar role={role} page={page} setPage={handleSetPage}/>
+        <Sidebar role={role} page={page} setPage={handleSetPage} dbProfile={dbProfile}/>
         <div className="main">
           <div className="topbar">
             <div style={{display:"flex",alignItems:"center",gap:14}}>
