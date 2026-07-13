@@ -35,7 +35,7 @@ export default function AppRoot() {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0D1F3C",flexDirection:"column",gap:16}}>
-      <div style={{fontSize:28,fontWeight:900,color:"white",letterSpacing:4,fontFamily:"'Arial Black',Arial,sans-serif"}}>RFP <span style={{fontSize:14,verticalAlign:"super",letterSpacing:2}}>LAB</span></div>
+      <img src="/Final Image.png" alt="RFPlab" style={{height:52,width:"auto",display:"block",margin:"0 auto"}}/>
       <div style={{color:"rgba(255,255,255,.5)",fontSize:12,fontFamily:"'Inter',sans-serif"}}>Loading…</div>
     </div>
   )
