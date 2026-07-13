@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── RFPlab.com Brand Tokens ──────────────────────────────────────────────────
 // Matched to rfplab.com website: dark teal backgrounds, bright green accent,
@@ -53,6 +53,30 @@ const C = {
   purple:   "#1B5E20",
   purplt:   "#E8F5E9",
 };
+
+// ─── Date formatting — always Month D, YYYY throughout the platform ───────────
+function fmtDate(dateStr) {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr + (dateStr.length === 10 ? "T12:00:00" : ""));
+    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  } catch { return dateStr; }
+}
+function fmtDateShort(dateStr) {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr + (dateStr.length === 10 ? "T12:00:00" : ""));
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch { return dateStr; }
+}
+function fmtDateTime(dateStr) {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+           " at " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  } catch { return dateStr; }
+}
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@700;900&family=DM+Mono:wght@400;500&display=swap');
@@ -1067,7 +1091,39 @@ function WStep3({ data, set }) {
 }
 
 // ── Wiz Step 4 ────────────────────────────────────────────────────────────────
+function FileUploadZone({ label, accept, icon, hint, uploaded, filename, onFile }) {
+  const ref = useRef(null);
+  const handleChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) onFile(file);
+  };
+  return (
+    <div>
+      <input type="file" ref={ref} accept={accept} style={{display:"none"}} onChange={handleChange}/>
+      {uploaded
+        ? <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.greenlt,border:`1px solid ${C.green}`,borderRadius:7}}>
+            <span style={{fontSize:18}}>✅</span>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:12,color:C.green}}>Uploaded successfully</div>
+              <div style={{fontSize:11,color:C.stone}}>{filename}</div>
+            </div>
+            <button className="btn btn-ghost btn-xs" style={{color:C.stone}} onClick={()=>ref.current?.click()}>Replace</button>
+          </div>
+        : <div className="upload-z" onClick={()=>ref.current?.click()}>
+            <div style={{fontSize:28,marginBottom:6}}>{icon}</div>
+            <div style={{fontSize:13,color:C.ash}}><strong style={{color:C.black}}>Click to upload</strong> {label}</div>
+            {hint && <div style={{fontSize:11,color:C.stone,marginTop:3}}>{hint}</div>}
+          </div>}
+    </div>
+  );
+}
+
 function WStep4({ data, set }) {
+  const setFile = (key, file) => {
+    set(key, true);
+    set(key+"_name", file.name);
+    set(key+"_size", file.size);
+  };
   return (
     <div>
       <div className="page-title">Lane Data</div>
@@ -1087,35 +1143,49 @@ function WStep4({ data, set }) {
         <div className="card">
           <div className="card-title">📊 Lane File</div>
           <div className="wiz-alr info">Required columns: Lane ID, Origin, Destination, Mode, Estimated Volume, Term.</div>
-          {data.laneFileUploaded
-            ? <div className="upload-ok">✓ Lane file uploaded — 97 lanes detected · Dry Van, Reefer, IMDL</div>
-            : <div className="upload-z" onClick={()=>set("laneFileUploaded",true)}><div style={{fontSize:24,marginBottom:6}}>📊</div><div style={{fontSize:13,color:C.gray}}><strong style={{color:C.steel}}>Click to upload</strong> lane file (.xlsx / .csv)</div></div>}
+          <FileUploadZone
+            label="lane file" accept=".xlsx,.csv,.xls" icon="📊"
+            hint=".xlsx or .csv — must match RFPlab template"
+            uploaded={data.laneFileUploaded} filename={data.laneFileUploaded_name}
+            onFile={f=>setFile("laneFileUploaded",f)}/>
         </div>
       )}
       {data.laneMethod==="raw_data" && (
         <div className="card">
           <div className="card-title">🔬 Load-Level Data</div>
-          <div className="wiz-alr info">Upload your TMS export. RFPlab will aggregate by O/D/Mode, calculate volumes, and map incumbents automatically.</div>
-          {data.rawDataUploaded
-            ? <div className="upload-ok">✓ 8,847 loads · 97 unique lanes identified · 23 incumbents mapped</div>
-            : <div className="upload-z" onClick={()=>set("rawDataUploaded",true)}><div style={{fontSize:24,marginBottom:6}}>🔬</div><div style={{fontSize:13,color:C.gray}}><strong style={{color:C.steel}}>Click to upload</strong> shipment history (.xlsx / .csv)</div></div>}
+          <div className="wiz-alr info">Upload your TMS export. RFPlab will aggregate by O/D/Mode, calculate volumes, and map incumbents.</div>
+          <FileUploadZone
+            label="shipment history" accept=".xlsx,.csv,.xls" icon="🔬"
+            hint=".xlsx or .csv · TMS or ERP export"
+            uploaded={data.rawDataUploaded} filename={data.rawDataUploaded_name}
+            onFile={f=>setFile("rawDataUploaded",f)}/>
         </div>
       )}
       <div className="card">
         <div className="card-title">📎 Supporting Documents</div>
+        <div style={{fontSize:12,color:C.stone,marginBottom:12}}>These documents are shared with invited carriers in their bid portal.</div>
         {[
-          {key:"termSheetUploaded",label:"Term Sheet",req:true},
-          {key:"fscUploaded",label:"FSC Table / Schedule",req:false},
-          {key:"accessorialUploaded",label:"Accessorial Schedule",req:false},
-          {key:"loadingUploaded",label:"Loading Locations / Warehouse Contacts",req:false},
-          {key:"deliveryUploaded",label:"Delivery Instructions",req:false},
-          {key:"deductionsUploaded",label:"Deductions Guide",req:false},
-          {key:"proceduresUploaded",label:"Processes & Procedures",req:false},
+          {key:"termSheetUploaded",   label:"Term Sheet",                         req:true,  icon:"📋"},
+          {key:"fscUploaded",         label:"FSC Table / Schedule",               req:false, icon:"⛽"},
+          {key:"accessorialUploaded", label:"Accessorial Schedule",               req:false, icon:"💲"},
+          {key:"loadingUploaded",     label:"Loading Locations / Warehouse Contacts", req:false, icon:"📍"},
+          {key:"deliveryUploaded",    label:"Delivery Instructions",              req:false, icon:"🚚"},
+          {key:"deductionsUploaded",  label:"Deductions Guide",                   req:false, icon:"📉"},
+          {key:"proceduresUploaded",  label:"Processes & Procedures",             req:false, icon:"📖"},
         ].map(doc=>(
-          <div key={doc.key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:`1px solid ${data[doc.key]?C.green:C.grayli}`,background:data[doc.key]?C.greenlt:C.white,borderRadius:7,marginBottom:6,cursor:"pointer"}} onClick={()=>set(doc.key,true)}>
-            <span style={{fontSize:16}}>{data[doc.key]?"✅":"📄"}</span>
-            <span style={{flex:1,fontSize:12,fontWeight:500}}>{doc.label}{doc.req&&<span style={{color:C.red,marginLeft:4}}>*</span>}</span>
-            <span style={{fontSize:10,color:data[doc.key]?C.green:C.steel,fontWeight:600}}>{data[doc.key]?"Uploaded":"Click to upload"}</span>
+          <div key={doc.key} style={{marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+              <span style={{fontSize:14}}>{doc.icon}</span>
+              <span style={{fontWeight:600,fontSize:12,color:C.black}}>
+                {doc.label}{doc.req&&<span style={{color:C.rust,marginLeft:4}}>*</span>}
+              </span>
+              {data[doc.key] && <span style={{fontSize:9,fontWeight:800,background:C.greenlt,color:C.green,padding:"1px 6px",borderRadius:2}}>UPLOADED</span>}
+            </div>
+            <FileUploadZone
+              label={doc.label} accept=".pdf,.xlsx,.csv,.docx,.xls" icon="📄"
+              hint="PDF, Excel, Word, or CSV"
+              uploaded={data[doc.key]} filename={data[doc.key+"_name"]}
+              onFile={f=>setFile(doc.key,f)}/>
           </div>
         ))}
       </div>
@@ -1241,15 +1311,107 @@ function WStep7({ data, set }) {
   const carriers = data.carriers || [];
   const setC = c=>set("carriers",typeof c==="function"?c(carriers):c);
   const [form,setForm] = useState({name:"",scac:"",contact:"",email:"",dot:"",type:"broker"});
-  const add=()=>{if(!form.name||!form.email)return;setC([...carriers,{...form,id:Date.now()}]);setForm({name:"",scac:"",contact:"",email:"",dot:"",type:"broker"});};
+  const [csvError, setCsvError] = useState("");
+  const [showCsv, setShowCsv] = useState(false);
+  const csvRef = useRef(null);
+
+  const add=()=>{
+    if(!form.name||!form.email)return;
+    setC([...carriers,{...form,id:Date.now()}]);
+    setForm({name:"",scac:"",contact:"",email:"",dot:"",type:"broker"});
+  };
   const remove=(id)=>setC(carriers.filter(c=>c.id!==id));
   const addSug=(c)=>{if(!carriers.find(x=>x.email===c.email))setC([...carriers,c]);};
+
+  // CSV batch import: Name, SCAC, Contact, Email, DOT, Type
+  const handleCSV = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter(l=>l.trim());
+        if (lines.length < 2) { setCsvError("CSV must have a header row and at least one data row."); return; }
+        // Detect header
+        const header = lines[0].split(",").map(h=>h.trim().toLowerCase());
+        const col = (names) => names.map(n=>header.indexOf(n)).find(i=>i>=0) ?? -1;
+        const nameIdx  = col(["name","company","carrier name","carrier"]);
+        const emailIdx = col(["email","contact email","email address"]);
+        const scacIdx  = col(["scac"]);
+        const contactIdx = col(["contact","contact name","primary contact"]);
+        const dotIdx   = col(["dot","dot number","usdot"]);
+        const typeIdx  = col(["type","carrier type"]);
+
+        if (nameIdx < 0 || emailIdx < 0) {
+          setCsvError("CSV must have 'Name' and 'Email' columns. Optional: SCAC, Contact, DOT, Type.");
+          return;
+        }
+
+        const imported = [];
+        let errors = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",").map(c=>c.trim().replace(/^"|"$/g,""));
+          const email = cols[emailIdx]?.trim();
+          const name  = cols[nameIdx]?.trim();
+          if (!name || !email || !email.includes("@")) { errors++; continue; }
+          if (carriers.find(x=>x.email===email)) continue; // skip dupes
+          imported.push({
+            id: Date.now() + i,
+            name,
+            email,
+            scac:    scacIdx    >= 0 ? cols[scacIdx]    : "",
+            contact: contactIdx >= 0 ? cols[contactIdx] : "",
+            dot:     dotIdx     >= 0 ? cols[dotIdx]     : "",
+            type:    typeIdx    >= 0 ? (cols[typeIdx]||"broker").toLowerCase() : "broker",
+          });
+        }
+        if (imported.length === 0 && errors > 0) {
+          setCsvError(`No valid rows found. ${errors} rows skipped (missing name or email).`);
+          return;
+        }
+        setC([...carriers, ...imported]);
+        setCsvError("");
+        setShowCsv(false);
+        if (errors > 0) setCsvError(`Imported ${imported.length} carriers. ${errors} rows skipped.`);
+      } catch(err) {
+        setCsvError("Could not parse CSV: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   return (
     <div>
       <div className="page-title">Carrier & Broker List</div>
       <div className="page-sub">Add invited parties. Only these contacts can access the bid via their secure link.</div>
+
+      {/* Batch CSV import */}
+      <div className="card" style={{borderLeft:`3px solid ${C.green}`,marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:13,color:C.black}}>📥 Batch Import from CSV</div>
+            <div style={{fontSize:11,color:C.stone,marginTop:2}}>Upload a CSV with columns: Name, Email, SCAC, Contact, DOT, Type</div>
+          </div>
+          <input ref={csvRef} type="file" accept=".csv,.txt" style={{display:"none"}} onChange={handleCSV}/>
+          <button className="btn btn-green btn-sm" onClick={()=>csvRef.current?.click()}>⬆ Upload CSV</button>
+        </div>
+        {csvError && <div className="wiz-alr warn" style={{marginTop:10,marginBottom:0}}>{csvError}</div>}
+        <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.sand}`,fontSize:11,color:C.stone}}>
+          <strong>Template format:</strong> Name, SCAC, Contact, Email, DOT, Type (broker/asset/both)
+          <button className="btn btn-ghost btn-xs" style={{marginLeft:8}} onClick={()=>{
+            const csv = "Name,SCAC,Contact,Email,DOT,Type\nROAR Logistics,ROAR,John Smith,john@roar.com,1234567,broker\nElberta Carriers,ELFI,Dana Reed,rates@elberta.com,4567890,asset";
+            const blob = new Blob([csv], {type:"text/csv"});
+            const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="carrier_template.csv"; a.click();
+          }}>⬇ Download Template</button>
+        </div>
+      </div>
+
+      {/* Manual add */}
       <div className="card">
-        <div className="card-title">➕ Add Carriers</div>
+        <div className="card-title">➕ Add Carrier Manually</div>
         <div className="wiz-row3">
           <div className="wiz-fg"><label>Company Name *</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Carrier / Broker name"/></div>
           <div className="wiz-fg"><label>SCAC</label><input value={form.scac} onChange={e=>setForm(f=>({...f,scac:e.target.value}))} placeholder="e.g. ROAR"/></div>
@@ -1262,6 +1424,8 @@ function WStep7({ data, set }) {
         </div>
         <button className="btn btn-primary btn-sm" onClick={add} disabled={!form.name||!form.email}>+ Add to List</button>
       </div>
+
+      {/* Suggestions */}
       {carriers.length===0 && (
         <div className="card">
           <div className="card-title">⭐ Suggested from Previous Bids</div>
@@ -1273,12 +1437,20 @@ function WStep7({ data, set }) {
           ))}
         </div>
       )}
+
+      {/* Carrier list */}
       {carriers.length>0 && (
         <div className="card">
-          <div className="card-header"><div className="card-title">📋 Invited Carriers ({carriers.length})</div><div style={{fontSize:11,color:C.gray}}>{carriers.filter(c=>c.type==="asset").length} asset · {carriers.filter(c=>c.type==="broker").length} broker</div></div>
+          <div className="card-header">
+            <div className="card-title">📋 Invited Carriers ({carriers.length})</div>
+            <div style={{fontSize:11,color:C.gray}}>{carriers.filter(c=>c.type==="asset").length} asset · {carriers.filter(c=>c.type==="broker").length} broker</div>
+          </div>
           {carriers.map(c=>(
             <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:`1px solid ${C.grayli}`,borderRadius:7,marginBottom:6}}>
-              <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{c.name} <span className={`badge wiz-badge-${c.type==="asset"?"asset":"broker"}`}>{c.type}</span></div><div style={{fontSize:11,color:C.gray}}>{c.scac&&`${c.scac} · `}{c.dot&&`DOT ${c.dot} · `}{c.email}</div></div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:12}}>{c.name} <span className={`badge wiz-badge-${c.type==="asset"?"asset":"broker"}`}>{c.type}</span></div>
+                <div style={{fontSize:11,color:C.gray}}>{c.scac&&`${c.scac} · `}{c.dot&&`DOT ${c.dot} · `}{c.contact&&`${c.contact} · `}{c.email}</div>
+              </div>
               <button className="btn btn-ghost btn-sm" style={{color:C.red}} onClick={()=>remove(c.id)}>✕</button>
             </div>
           ))}
@@ -1514,24 +1686,79 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
   const prev=()=>{if(step>1)setStep(step-1);};
   const pct=Math.round(((step-1)/10)*100);
 
-  const handleLaunch=()=>{setLaunched(true);onLaunched&&onLaunched(allData);};
+  const handleLaunch = async () => {
+    // Save to Supabase if connected
+    try {
+      const { createRFP } = await import('./supabase.js');
+      if (createRFP) {
+        const rfpPayload = {
+          name:           basics.name || "Untitled RFP",
+          shipper_name:   basics.shipper || "",
+          status:         "active",
+          modes:          basics.modes,
+          term:           basics.term,
+          start_date:     basics.startDate || null,
+          end_date:       basics.endDate   || null,
+          rate_format:    rates.rateFormat,
+          award_model:    award.awardModel,
+          max_carriers_per_lane: parseInt(award.maxCarriers) || 3,
+          asset_pct:      award.assetPct || 60,
+          feedback_enabled: award.feedbackEnabled,
+          feedback_type:  award.feedbackType,
+          two_rounds:     timeline.twoRounds || false,
+          invite_date:    timeline.inviteDate   || null,
+          rate_deadline:  timeline.rateDeadline || null,
+          award_date:     timeline.awardDate    || null,
+          go_live_date:   timeline.goLiveDate   || null,
+          notes:          laneReq.sopNotes || "",
+        };
+        await createRFP(rfpPayload);
+      }
+    } catch(e) {
+      console.warn("Could not save RFP to Supabase:", e.message);
+    }
+
+    // Remove draft from localStorage since it launched
+    const draftId = draftData?.id;
+    if (draftId) {
+      const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+      localStorage.setItem('rfplab_drafts', JSON.stringify(existing.filter(d=>d.id!==draftId)));
+    }
+
+    setLaunched(true);
+    onLaunched && onLaunched(allData);
+  };
 
   const handleSaveDraft = () => {
+    const now = new Date().toISOString();
     const draft = {
-      id: draftData?.id || `draft-${Date.now()}`,
-      name: basics.name || "Untitled RFP",
-      step, pct,
+      id:        draftData?.id || `draft-${Date.now()}`,
+      name:      basics.name || "Untitled RFP",
+      shipper:   basics.shipper || "",
+      step,
+      pct,
       completed: [...completed],
-      savedAt: new Date().toISOString(),
-      basics, rates, award, lanes, laneReq, cData, timeline, notifD,
+      savedAt:   now,
+      // Save full state of every step
+      basics:    { ...basics },
+      rates:     { ...rates },
+      award:     { ...award },
+      lanes:     { ...lanes },
+      laneReq:   { ...laneReq },
+      cData:     { ...cData, carriers: cData.carriers || [] },
+      timeline:  { ...timeline },
+      notifD:    { ...notifD },
     };
-    // Save to localStorage for now (will sync to Supabase when we wire drafts)
-    const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
-    const updated = [...existing.filter(d=>d.id!==draft.id), draft];
-    localStorage.setItem('rfplab_drafts', JSON.stringify(updated));
-    setLastSaved(draft.savedAt);
-    setDraftSaved(true);
-    setTimeout(()=>setDraftSaved(false), 2500);
+    try {
+      const existing = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+      const updated  = [...existing.filter(d=>d.id!==draft.id), draft];
+      localStorage.setItem('rfplab_drafts', JSON.stringify(updated));
+      setLastSaved(now);
+      setDraftSaved(true);
+      setTimeout(()=>setDraftSaved(false), 2500);
+    } catch(e) {
+      console.error("Could not save draft:", e);
+    }
   };
 
   const renderStep=()=>{
@@ -1563,9 +1790,9 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
   return (
     <div style={{display:"flex",gap:0,minHeight:"calc(100vh - 50px)"}}>
       {/* Left wizard nav — compact, fits inside content area */}
-      <div style={{width:200,minWidth:200,background:C.navy,borderRadius:"10px 0 0 10px",padding:"16px 0",flexShrink:0}}>
+      <div style={{width:200,minWidth:200,background:C.black,borderRadius:"10px 0 0 10px",padding:"16px 0",flexShrink:0}}>
         <div style={{padding:"0 14px 14px",borderBottom:"1px solid rgba(255,255,255,.08)",marginBottom:8}}>
-          <div style={{fontSize:10,fontWeight:700,color:C.sky,letterSpacing:1.5,textTransform:"uppercase"}}>RFP Builder</div>
+          <div style={{fontSize:10,fontWeight:700,color:C.green,letterSpacing:1.5,textTransform:"uppercase"}}>RFP Builder</div>
           {basics.name && <div style={{fontSize:12,fontWeight:600,color:"white",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{basics.name}</div>}
           {builderRole==="admin" && <div style={{fontSize:9,fontWeight:700,color:C.sky,background:"rgba(74,159,200,.15)",padding:"2px 6px",borderRadius:4,marginTop:4,display:"inline-block"}}>ADMIN MODE</div>}
         </div>
@@ -2920,7 +3147,7 @@ function RiskCarriersPage() {
               <div>
                 <div style={{fontWeight:800,fontSize:15,color:"#111111"}}>{selected.name}</div>
                 <div style={{fontSize:11,color:"#8C8070",marginTop:2}}>{selected.scac} · DOT {selected.dot} · MC {selected.mc}</div>
-                <div style={{fontSize:11,color:"#8C8070"}}>Partner since {new Date(selected.since+"-01").toLocaleDateString("en-US",{month:"long",year:"numeric"})}</div>
+                <div style={{fontSize:11,color:"#8C8070"}}>Partner since {fmtDate(selected.since+"-01").replace(/\d+,\s/,"")}</div>
               </div>
               <button className="btn btn-ghost" onClick={()=>setSelected(null)}>✕</button>
             </div>
@@ -3198,7 +3425,7 @@ function RiskScorecardsPage() {
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
             <div>
               <div style={{fontWeight:800,fontSize:16,color:"#111111"}}>{selected.name} — Performance Scorecard</div>
-              <div style={{fontSize:11,color:"#8C8070",marginTop:2}}>{selected.scac} · {selected.type} · Partner since {new Date(selected.since+"-01").toLocaleDateString("en-US",{month:"long",year:"numeric"})}</div>
+              <div style={{fontSize:11,color:"#8C8070",marginTop:2}}>{selected.scac} · {selected.type} · Partner since {fmtDate(selected.since+"-01").replace(/\d+,\s/,"")}</div>
             </div>
             <div style={{textAlign:"center"}}>
               <div style={{fontSize:48,fontWeight:800,color:gradeColor(overall(selected)),lineHeight:1}}>{grade(overall(selected))}</div>
@@ -4106,7 +4333,7 @@ function OrgTeamPage({ dbProfile, role }) {
                       <td style={{color:C.stone,fontSize:12}}>{m.email}</td>
                       <td><span style={{background:C.black,color:C.green,fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:2,textTransform:'uppercase',letterSpacing:.5}}>{m.role}</span></td>
                       <td style={{fontSize:12,color:C.stone}}>Full access</td>
-                      <td style={{fontSize:11,color:C.stone}}>{new Date(m.created_at).toLocaleDateString()}</td>
+                      <td style={{fontSize:11,color:C.stone}}>{fmtDateShort(m.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -4152,9 +4379,31 @@ function PlaceholderPage({ title, sub }) {
 
 // ─── Simple dashboards ────────────────────────────────────────────────────────
 // ─── My RFPs Page — with drafts, progress, timestamps ────────────────────────
-function MyRFPsPage({ setPage, role }) {
-  const [drafts, setDrafts] = useState([]);
+function MyRFPsPage({ setPage, role, dbProfile }) {
+  const [drafts,  setDrafts]  = useState([]);
+  const [rfps,    setRfps]    = useState([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("active");
+
+  useEffect(() => {
+    // Load drafts from localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('rfplab_drafts') || '[]');
+      setDrafts(saved.sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt)));
+    } catch(e) { setDrafts([]); }
+
+    // Load live RFPs from Supabase
+    if (dbProfile) {
+      import('./supabase.js').then(({ getRFPs }) => {
+        getRFPs(dbProfile.id).then(data => {
+          setRfps(data || []);
+          setLoading(false);
+        }).catch(() => setLoading(false));
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [dbProfile]);
 
   useEffect(() => {
     // Load saved drafts from localStorage
@@ -4220,7 +4469,7 @@ function MyRFPsPage({ setPage, role }) {
                   if (mins < 60) return `${mins}m ago`;
                   const hrs = Math.floor(mins / 60);
                   if (hrs < 24) return `${hrs}h ago`;
-                  return savedDate.toLocaleDateString();
+                  return fmtDateShort(draft.savedAt);
                 })();
 
                 return (
@@ -4272,7 +4521,7 @@ function MyRFPsPage({ setPage, role }) {
                         ✏️ Continue Building →
                       </button>
                       <span style={{fontSize:11,color:C.gray,alignSelf:"center"}}>
-                        Saved {savedDate.toLocaleDateString()} at {savedDate.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}
+                        Saved {fmtDateTime(draft.savedAt)}}
                       </span>
                     </div>
                   </div>
@@ -4283,19 +4532,57 @@ function MyRFPsPage({ setPage, role }) {
 
       {/* Active / Awarded / Closed tabs — real data from Supabase will populate these */}
       {tab !== "drafts" && (
-        <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.grayli}`}}>
-          <div style={{fontSize:32,marginBottom:10}}>{tab==="active"?"📋":tab==="awarded"?"🏆":"📦"}</div>
-          <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>
-            No {tab} RFPs yet
-          </div>
-          <div style={{fontSize:12,color:C.gray,marginBottom:16}}>
-            {tab==="active"
-              ? "Launch your first RFP to start inviting carriers and collecting rates."
-              : tab==="awarded"
-                ? "Awarded RFPs will appear here once you finalize carrier selections."
-                : "Closed bids will archive here for reference."}
-          </div>
-          {tab==="active" && <button className="btn btn-primary" onClick={() => setPage("new_rfp")}>🚀 Build Your First RFP →</button>}
+        <div>
+          {loading
+            ? <div className="card" style={{textAlign:"center",padding:40,color:C.stone}}>Loading RFPs…</div>
+            : (() => {
+                const filtered = rfps.filter(r => {
+                  if (tab==="active")  return ["active","draft"].includes(r.status);
+                  if (tab==="awarded") return r.status==="awarded";
+                  if (tab==="closed")  return r.status==="closed";
+                  return true;
+                });
+                if (filtered.length === 0) return (
+                  <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.grayli}`}}>
+                    <div style={{fontSize:32,marginBottom:10}}>{tab==="active"?"📋":tab==="awarded"?"🏆":"📦"}</div>
+                    <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No {tab} RFPs yet</div>
+                    <div style={{fontSize:12,color:C.stone,marginBottom:16}}>
+                      {tab==="active" ? "Launch your first RFP to start collecting carrier rates."
+                       : tab==="awarded" ? "Awarded RFPs will appear here once you finalize selections."
+                       : "Closed bids archive here for reference."}
+                    </div>
+                    {tab==="active" && <button className="btn btn-green" onClick={() => setPage("new_rfp")}>🚀 Build Your First RFP →</button>}
+                  </div>
+                );
+                return filtered.map(rfp => (
+                  <div key={rfp.id} className="card" style={{marginBottom:10,cursor:"pointer"}} onClick={()=>setPage("results")}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                      <div>
+                        <div style={{fontWeight:800,fontSize:14,color:C.black}}>{rfp.name}</div>
+                        <div style={{fontSize:12,color:C.stone,marginTop:2}}>{rfp.shipper_name} · {(rfp.modes||[]).join(", ")}</div>
+                      </div>
+                      <span style={{background:rfp.status==="active"?C.greenlt:C.parchment,
+                        color:rfp.status==="active"?C.green:C.stone,
+                        padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,textTransform:"uppercase"}}>
+                        {rfp.status}
+                      </span>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                      {[
+                        ["Rate Deadline", fmtDateShort(rfp.rate_deadline)],
+                        ["Awards", fmtDateShort(rfp.award_date)],
+                        ["Go Live", fmtDateShort(rfp.go_live_date)],
+                        ["Created", fmtDateShort(rfp.created_at)],
+                      ].map(([k,v])=>(
+                        <div key={k}>
+                          <div style={{fontSize:9,color:C.stone,textTransform:"uppercase",letterSpacing:.5,fontWeight:700,marginBottom:2}}>{k}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:C.black}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
         </div>
       )}
     </div>
@@ -4394,7 +4681,7 @@ function AdminUserManagement() {
                       <td style={{color:C.gray,fontSize:12}}>{u.email}</td>
                       <td>{u.company || '—'}</td>
                       <td><span style={rolePillStyle(u.role)}>{u.role}</span></td>
-                      <td style={{color:C.gray,fontSize:11}}>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td style={{color:C.gray,fontSize:11}}>{fmtDateShort(u.created_at)}</td>
                       <td>
                         <select
                           value={u.role}
@@ -4555,7 +4842,7 @@ function AdminDashboard({ setPage }) {
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={rolePill(u.role)}>{u.role}</span>
-                    <span style={{fontSize:11,color:C.gray}}>{new Date(u.created_at).toLocaleDateString()}</span>
+                    <span style={{fontSize:11,color:C.gray}}>{fmtDateShort(u.created_at)}</span>
                   </div>
                 </div>
               ))}
@@ -4756,7 +5043,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="dashboard") return <AdminDashboard setPage={setPage}/>;
       if (page==="users")     return <AdminUserManagement/>;
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="admin" dbProfile={dbProfile}/>;
-      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role}/>;
+      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile}/>;
       if (page==="risk_carriers")  return <RiskCarriersPage/>;
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
@@ -4768,7 +5055,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="invite")    return <InvitePage dbProfile={dbProfile}/>;
       if (page==="results" || page==="awards") return <ResultsPage bidSettings={bidSettings} dbProfile={dbProfile}/>;
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="shipper" dbProfile={dbProfile}/>;
-      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role}/>;
+      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile}/>;
       if (page==="risk_carriers")  return <RiskCarriersPage/>;
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
