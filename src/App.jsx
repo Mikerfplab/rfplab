@@ -1654,27 +1654,26 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
 
     // Load live RFPs from Supabase
     if (dbProfile) {
-      import('./supabase.js').then(({ getRFPs, supabase }) => {
-        getRFPs(dbProfile.id).then(async data => {
-          // If no RFPs found by shipper_id, try by shipper_name as fallback
-          // (covers RFPs created before shipper_id was wired up)
+      import('./supabase.js').then(async ({ getRFPs, supabase: sb }) => {
+        try {
+          // Primary: query by shipper_id
+          let data = await getRFPs(dbProfile.id);
+          // Fallback: query by shipper_name if shipper_id wasn't saved
           if (!data || data.length === 0) {
-            const name = dbProfile.company || dbProfile.full_name || '';
-            if (name) {
-              const { data: byName } = await supabase
-                .from('rfps')
-                .select('*')
-                .ilike('shipper_name', `%${name}%`)
+            const n = dbProfile.company || dbProfile.full_name || '';
+            if (n && sb) {
+              const res = await sb.from('rfps').select('*')
+                .ilike('shipper_name', `%${n}%`)
                 .order('created_at', { ascending: false });
-              setRfps(byName || []);
-            } else {
-              setRfps([]);
+              data = res.data || [];
             }
-          } else {
-            setRfps(data || []);
           }
-          setLoading(false);
-        }).catch(() => setLoading(false));
+          setRfps(data || []);
+        } catch(e) {
+          console.error('Failed to load RFPs:', e);
+          setRfps([]);
+        }
+        setLoading(false);
       });
     } else {
       setLoading(false);
@@ -2129,104 +2128,103 @@ function AdminDashboard({ setPage }) {
 
 function ShipperDashboard({ setPage, dbProfile }) {
   const name = dbProfile?.company || dbProfile?.full_name || "Your Company";
-  const isReal = !!dbProfile; // real logged-in user vs demo
+  const [rfps,  setRfps]  = useState([]);
+  const [spots, setSpots] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  if (isReal) {
-    // Clean dashboard for real users — no hardcoded Spindrift data
+  useEffect(() => {
+    if (!dbProfile) { setLoading(false); return; }
+    Promise.all([
+      import('./supabase.js').then(async ({ getRFPs, supabase: sb }) => {
+        try {
+          let data = await getRFPs(dbProfile.id);
+          if (!data || data.length === 0) {
+            const n = dbProfile.company || dbProfile.full_name || '';
+            if (n && sb) {
+              const res = await sb.from('rfps').select('*')
+                .ilike('shipper_name', `%${n}%`).order('created_at', { ascending: false });
+              data = res.data || [];
+            }
+          }
+          return data || [];
+        } catch(e) { return []; }
+      }),
+      import('./supabase.js').then(({ getSpotLoads }) => getSpotLoads(dbProfile.id)),
+    ]).then(([r, s]) => {
+      setRfps(r || []);
+      setSpots(s || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [dbProfile]);
+
+  const activeRfps  = rfps.filter(r => r.status === 'active');
+  const liveSpots   = spots.filter(s => s.status === 'live' || s.status === 'active');
+  const awardedToday= spots.filter(s => s.status === 'awarded' && s.updated_at?.startsWith(new Date().toISOString().slice(0,10)));
+
+  if (true) { // always show real dashboard for logged-in users
     return (
       <div>
         <div className="section-header">
           <div>
             <div className="page-title">Welcome, {name}</div>
-            <div className="page-sub">Procurement Hub — choose how you want to move freight today</div>
+            <div className="page-sub">Procurement Hub · {loading ? "Loading…" : `${rfps.length} RFP${rfps.length!==1?"s":""} · ${spots.length} spot load${spots.length!==1?"s":""}`}</div>
           </div>
+          <button className="btn btn-green" onClick={()=>setPage("new_rfp")}>🚀 New RFP</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-          <div style={{background:`linear-gradient(135deg,${C.black},${C.ink})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("new_rfp")}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📋</div>
-              <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier bid</div></div>
-            </div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Run a structured bid across all your lanes. Set award strategy, invite carriers, and build your routing guide.</div>
-            <button className="btn btn-sm btn-green" onClick={e=>{e.stopPropagation();setPage("new_rfp");}}>🚀 Start New RFP →</button>
-          </div>
-          <div style={{background:`linear-gradient(135deg,#4C1D95,#6D28D9)`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("spot")}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⚡</div>
-              <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Spot Load</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Timed quote window</div></div>
-            </div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a single load and award to the best quote in real time. Quotes close automatically when your window expires.</div>
-            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.ash,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post a Load →</button>
-          </div>
+
+        <div className="stat-grid" style={{marginBottom:16}}>
+          <div className="stat-tile"><div className="stat-label">Total RFPs</div><div className="stat-value">{loading?"…":rfps.length}</div><div className="stat-sub">{activeRfps.length} active</div></div>
+          <div className="stat-tile"><div className="stat-label">Active RFPs</div><div className="stat-value" style={{color:activeRfps.length>0?C.green:C.stone}}>{loading?"…":activeRfps.length}</div></div>
+          <div className="stat-tile"><div className="stat-label">Spot Loads</div><div className="stat-value">{loading?"…":spots.length}</div><div className="stat-sub">{liveSpots.length} live</div></div>
+          <div className="stat-tile"><div className="stat-label">Awarded Today</div><div className="stat-value">{loading?"…":awardedToday.length}</div></div>
         </div>
-        <div className="card" style={{textAlign:"center",padding:"36px 20px",border:`2px dashed ${C.sand}`}}>
-          <div style={{fontSize:32,marginBottom:12}}>📋</div>
-          <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No RFPs yet</div>
-          <div style={{fontSize:12,color:C.stone,marginBottom:16}}>Create your first RFP to start inviting carriers and collecting rates.</div>
-          <button className="btn btn-primary" onClick={()=>setPage("new_rfp")}>🚀 Build Your First RFP →</button>
+
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:16,marginBottom:16}}>
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <div style={{padding:"14px 16px",borderBottom:`1px solid ${C.sand}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div className="card-title">Your RFPs</div>
+              <button className="btn btn-outline btn-sm" onClick={()=>setPage("rfps")}>View All →</button>
+            </div>
+            {loading
+              ? <div style={{padding:32,textAlign:"center",color:C.stone}}>Loading…</div>
+              : rfps.length === 0
+                ? <div style={{padding:"36px 20px",textAlign:"center"}}>
+                    <div style={{fontSize:28,marginBottom:10}}>📋</div>
+                    <div style={{fontWeight:600,fontSize:13,color:C.black,marginBottom:6}}>No RFPs yet</div>
+                    <div style={{fontSize:12,color:C.stone,marginBottom:14}}>Build your first RFP to start inviting carriers.</div>
+                    <button className="btn btn-green" onClick={()=>setPage("new_rfp")}>🚀 Build First RFP →</button>
+                  </div>
+                : rfps.slice(0,4).map(rfp=>(
+                    <div key={rfp.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderBottom:`1px solid ${C.sand}`,cursor:"pointer"}} onClick={()=>setPage("rfps")}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:13,color:C.black}}>{rfp.name}</div>
+                        <div style={{fontSize:11,color:C.stone,marginTop:2}}>{rfp.shipper_name} · Deadline {fmtDateShort(rfp.rate_deadline)}</div>
+                      </div>
+                      <span style={{background:rfp.status==="active"?C.greenlt:C.parchment,color:rfp.status==="active"?C.green:C.stone,padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,textTransform:"uppercase"}}>{rfp.status||"draft"}</span>
+                    </div>
+                  ))}
+          </div>
+          <div className="card">
+            <div className="card-title" style={{marginBottom:12}}>Quick Actions</div>
+            {[["🚀","New RFP","new_rfp"],["📋","My RFPs","rfps"],["⚡","Spot Board","spot"],["🛡️","Carrier Network","risk_carriers"],["👥","Team Members","org_team"]].map(([icon,label,pg])=>(
+              <button key={pg} className="btn btn-outline" style={{width:"100%",justifyContent:"flex-start",marginBottom:6,fontSize:12}} onClick={()=>setPage(pg)}>
+                {icon} {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Demo mode — keep the Spindrift example for illustration
-  return (
-    <div>
-      <div className="section-header">
-        <div><div className="page-title">Procurement Hub</div><div className="page-sub">Spindrift Beverages · Demo mode</div></div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-        <div style={{background:`linear-gradient(135deg,${C.black},${C.ink})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("rfps")}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-            <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📋</div>
-            <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier bid</div></div>
-          </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Structured bid across all your lanes with award modeling and routing guides.</div>
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.1)",color:"white",border:"1px solid rgba(255,255,255,.2)"}} onClick={e=>{e.stopPropagation();setPage("rfps");}}>View RFPs</button>
-            <button className="btn btn-sm btn-green" onClick={e=>{e.stopPropagation();setPage("new_rfp");}}>🚀 New RFP</button>
-          </div>
-        </div>
-        <div style={{background:`linear-gradient(135deg,#4C1D95,#6D28D9)`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("spot")}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-            <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>⚡</div>
-            <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Spot Load Auction</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Timed quotes</div></div>
-          </div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a load, set a timed window, award to the best quote in real time.</div>
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.1)",color:"white",border:"1px solid rgba(255,255,255,.2)"}} onClick={e=>{e.stopPropagation();setPage("spot");}}>Spot Board</button>
-            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.ash,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post Load</button>
-          </div>
-        </div>
-      </div>
-      <div className="stat-grid">
-        <div className="stat-tile"><div className="stat-label">Active RFP Lanes</div><div className="stat-value">97</div><div className="stat-sub">May–Aug 2026</div></div>
-        <div className="stat-tile"><div className="stat-label">RFP Carriers In</div><div className="stat-value">11<span style={{fontSize:14}}>/13</span></div></div>
-        <div className="stat-tile"><div className="stat-label">Spot Loads Live</div><div className="stat-value">2</div></div>
-        <div className="stat-tile"><div className="stat-label">Spot Awarded Today</div><div className="stat-value">1</div></div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:16}}>
-        <div className="card"><div className="card-header"><div className="card-title">RFP Bid Timeline — May–Aug 2026</div></div>
-          <div className="timeline">
-            {[["done","RFP Created","Mar 15, 2026"],["done","Carriers Invited","Mar 18, 2026"],["done","Lane File Sent","Mar 20, 2026"],["active","Bid Window Open","Mar 20 – Apr 30"],["pending","Analysis & Awards","May 1–7"],["pending","Go Live","May 12, 2026"]].map(([s,l,d])=>(
-              <div key={l} className="timeline-item"><div className={`timeline-dot ${s}`}/><div className="timeline-label">{l}</div><div className="timeline-date">{d}</div></div>
-            ))}
-          </div>
-        </div>
-        <div className="card"><div className="card-title" style={{marginBottom:12}}>Quick Actions</div>
-          {[["📊","RFP Results","results"],["🏆","Award Lanes","awards"],["🚛","Manage Invites","invite"],["⚡","Spot Board","spot"]].map(([i,l,p])=>(
-            <button key={p+l} className="btn btn-outline" style={{width:"100%",justifyContent:"flex-start",marginBottom:8}} onClick={()=>setPage(p)}>{i} {l}</button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+
 }
 
 
 function CarrierDashboard({ setPage, bidSettings, dbProfile }) {
-  const myLanes = LANES.filter(l=>l.bids.some(b=>b.carrier===carrierName));
-  const r1 = myLanes.filter(l=>l.bids[0]?.carrier===carrierName).length;
+  const [bids, setBids] = useState([]);
+  const myLanes = [];
+  const r1 = 0;
   return (
     <div>
       <div className="section-header"><div><div className="page-title">{carrierName||"Carrier"} — Portal</div><div className="page-sub">Contracted RFP + Spot Load Board</div></div></div>
