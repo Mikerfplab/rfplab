@@ -3286,139 +3286,328 @@ function RiskScorecardsPage() {
 }
 
 // ── PAGE 4: Loadsure Cargo Insurance Integration ─────────────────────────────
-const LS_SAMPLE_CERTS = [
-  { certNum:"A9BAF91D-C067-447A-A785-028691BC3C89", load:"Irwindale CA → Aurora CO", carrier:"ROAR Logistics",
-    commodity:"Beverage — Non-Haz", value:185000, premium:39.99, coverage:185000, deductible:500,
-    status:"ACTIVE", pickupDate:"2026-07-03", deliveryDate:"2026-07-05", purchasedAt:"2026-07-02" },
-  { certNum:"F9FE97CF-6B54-4E1A-AB22-4A541EB503A6", load:"Mooresville NC → Lakeland FL", carrier:"C.H. Robinson",
-    commodity:"Beverage — Non-Haz", value:212000, premium:44.50, coverage:212000, deductible:500,
-    status:"ACTIVE", pickupDate:"2026-06-30", deliveryDate:"2026-07-01", purchasedAt:"2026-06-29" },
-  { certNum:"B2CC9A11-D882-4F31-BB49-1AC7F3E82D0C", load:"Beaumont CA → Clackamas OR", carrier:"Market Express",
-    commodity:"Beverage — Refrigerated", value:198500, premium:52.25, coverage:198500, deductible:500,
-    status:"CANCELLED", pickupDate:"2026-07-02", deliveryDate:"2026-07-03", purchasedAt:"2026-07-01" },
-];
+// All API calls go via /api/loadsure-proxy (Vercel serverless) to keep key server-side
+// Direct browser calls also work since Loadsure supports CORS with Bearer auth
 
-const LS_SAMPLE_CLAIMS = [
-  { claimNum:"CLM-2026-0041", certNum:"B2CC9A11-D882-4F31-BB49-1AC7F3E82D0C",
-    status:"UNDER_REVIEW", causeOfLoss:"REEFER_BREAKDOWN", lostValue:42000,
-    carrier:"Market Express", load:"Beaumont CA → Clackamas OR", filed:"2026-07-03" },
+const LS_BASE = "https://api.loadsure.net";
+
+async function lsRequest(endpoint, method="GET", body=null) {
+  const key = localStorage.getItem("ls_api_key");
+  if (!key) throw new Error("No API key configured");
+  const opts = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${key}`,
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${LS_BASE}${endpoint}`, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ── Loadsure commodity list (fetched live from API) ───────────────────────────
+const LS_FALLBACK_COMMODITIES = [
+  { id:"FOOD_BEVERAGE", label:"Food & Beverage" },
+  { id:"GENERAL_FREIGHT", label:"General Freight" },
+  { id:"BUILDING_MATERIALS", label:"Building Materials" },
+  { id:"CLOTHING_TEXTILES", label:"Clothing & Textiles" },
+  { id:"INDUSTRIAL_MACHINERY", label:"Industrial Machinery" },
+  { id:"AUTOMOTIVE_PARTS", label:"Automotive Parts" },
+  { id:"CHEMICALS", label:"Chemicals (non-hazardous)" },
+  { id:"MEDICAL_SUPPLIES", label:"Medical Supplies" },
+  { id:"PAPER_PRODUCTS", label:"Paper Products" },
+  { id:"ELECTRONICS", label:"Electronics" },
 ];
 
 function LoadsureStatusBadge({ status }) {
   const map = {
-    ACTIVE:             { bg:"#EBF0DC", color:"#5C6B2E", label:"Active" },
-    CANCELLED:          { bg:"#EDE8DF", color:"#8C8070", label:"Cancelled" },
-    DRAFT_LOSS_NOTICE:  { bg:"#F5EDD4", color:"#7A5A10", label:"Draft" },
-    AWAITING_DOCUMENTS: { bg:"#F5EDD4", color:"#7A5A10", label:"Awaiting Docs" },
-    UNDER_REVIEW:       { bg:"#F5EDD4", color:"#7A5A10", label:"Under Review" },
-    PAYMENT_PROPOSED:   { bg:"#EBF0DC", color:"#5C6B2E", label:"Payment Proposed" },
-    PAID:               { bg:"#EBF0DC", color:"#5C6B2E", label:"Paid" },
-    WITHDRAWN:          { bg:"#EDE8DF", color:"#8C8070", label:"Withdrawn" },
-    REJECTED:           { bg:"#F5E0E0", color:"#7A1F1F", label:"Rejected" },
+    ACTIVE:             { bg:C.greenlt, color:C.green, label:"Active" },
+    CANCELLED:          { bg:C.parchment, color:C.stone, label:"Cancelled" },
+    DRAFT_LOSS_NOTICE:  { bg:C.goldlt, color:"#7A5A10", label:"Draft" },
+    AWAITING_DOCUMENTS: { bg:C.goldlt, color:"#7A5A10", label:"Awaiting Docs" },
+    UNDER_REVIEW:       { bg:C.goldlt, color:"#7A5A10", label:"Under Review" },
+    PAYMENT_PROPOSED:   { bg:C.greenlt, color:C.green, label:"Payment Proposed" },
+    PAID:               { bg:C.greenlt, color:C.green, label:"Paid" },
+    WITHDRAWN:          { bg:C.parchment, color:C.stone, label:"Withdrawn" },
+    REJECTED:           { bg:C.rustlt, color:C.rust, label:"Rejected" },
   };
-  const s = map[status] || { bg:"#EDE8DF", color:"#8C8070", label:status };
+  const s = map[status] || { bg:C.parchment, color:C.stone, label:status };
   return <span style={{background:s.bg,color:s.color,padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:.5}}>{s.label}</span>;
 }
 
+// ── Real Quote Modal — hits actual Loadsure API ───────────────────────────────
+// Coverage Rating maps to deductible tier as shown in Loadsure portal:
+//   BASE_RATES      = First dollar / full value (no deductible, shipper bears zero risk)
+//   DEDUCTIBLE_100K = Sits on top of carrier MTC — covers losses above $100K carrier liability
+//   DEDUCTIBLE_250K = Same structure, $250K threshold — used when carrier MTC is strong
+
+const LS_COVERAGE_RATINGS = [
+  {
+    value: "BASE_RATES",
+    label: "Base Rates — First Dollar",
+    desc: "Full invoice value coverage from dollar one. Shipper bears no deductible. Highest premium, broadest protection.",
+    deductibleNote: "No deductible",
+    badge: "Full Value",
+  },
+  {
+    value: "DEDUCTIBLE_100K",
+    label: "$100K Deductible",
+    desc: "Sits on top of the carrier's Motor Truck Cargo (MTC) policy. Coverage kicks in above $100K carrier liability. Lower premium.",
+    deductibleNote: "$100,000 deductible",
+    badge: "Carrier MTC + Excess",
+  },
+  {
+    value: "DEDUCTIBLE_250K",
+    label: "$250K Deductible",
+    desc: "Same structure as $100K but higher threshold. Best used when carrier MTC limit is strong. Lowest premium.",
+    deductibleNote: "$250,000 deductible",
+    badge: "High-Deductible Excess",
+  },
+];
+
 function LoadsureQuoteModal({ load, onClose }) {
-  // Simulates the Loadsure Quote API flow:
-  // POST /api/insureLoad/quote → quoteToken → POST /api/insureLoad/purchaseQuote
-  const [step, setStep] = useState("form"); // form | quoting | quoted | purchasing | purchased
-  const [shipValue, setShipValue] = useState("185000");
-  const [commodity, setCommodity] = useState("Beverages");
+  const [step, setStep] = useState("form");
+  const [shipValue, setShipValue] = useState(load?.value ? String(load.value) : "185000");
+  const [commodityId, setCommodityId] = useState("FOOD_BEVERAGE");
+  const [coverageRating, setCoverageRating] = useState("BASE_RATES");
+  const [commodities, setCommodities] = useState([]);
+  const [loadingCommodities, setLoadingCommodities] = useState(true);
   const [quote, setQuote] = useState(null);
   const [cert, setCert] = useState(null);
+  const [error, setError] = useState("");
+  const [rawReq, setRawReq] = useState(null);
+  const [rawRes, setRawRes] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
 
-  const handleGetQuote = () => {
-    setStep("quoting");
-    // Simulate POST /api/insureLoad/quote
-    setTimeout(() => {
-      const val = parseFloat(shipValue) || 185000;
-      setQuote({
-        quoteToken: "QUO" + Math.random().toString(36).slice(2,10).toUpperCase(),
-        expiresIn: 600,
-        insuranceProduct: {
-          name: "All Risk Domestic",
-          id: "ARDOM",
-          description: "Covers up to full invoice value of general merchandise hauled by a truckload carrier.",
-          limit: val,
-          deductible: 500,
-          premium: parseFloat((val * 0.000216).toFixed(2)),
-          serviceFee: 15,
-          tax: parseFloat((val * 0.000216 * 0.04).toFixed(2)),
-          currency: "USD",
-          termsAndConditionsLink: "https://loadsure.net/terms",
-          commodityExclusions: ["tech","luxury"],
+  // Fetch real commodity list from Loadsure on mount
+  useEffect(() => {
+    lsRequest("/api/commodities")
+      .then(data => {
+        let list = Array.isArray(data) ? data : data.commodities || data.data || [];
+        if (list.length > 0) setCommodities(list);
+        else setCommodities([
+          {id:"FOOD_BEVERAGE",label:"Food & Beverage"},
+          {id:"GENERAL_FREIGHT",label:"General Freight"},
+          {id:"BUILDING_MATERIALS",label:"Building Materials"},
+          {id:"CLOTHING_TEXTILES",label:"Clothing & Textiles"},
+          {id:"INDUSTRIAL_MACHINERY",label:"Industrial Machinery"},
+          {id:"AUTOMOTIVE_PARTS",label:"Automotive Parts"},
+          {id:"CHEMICALS",label:"Chemicals (non-hazardous)"},
+          {id:"MEDICAL_SUPPLIES",label:"Medical Supplies"},
+          {id:"PAPER_PRODUCTS",label:"Paper Products"},
+          {id:"ELECTRONICS",label:"Electronics"},
+        ]);
+      })
+      .catch(() => {
+        setCommodities([
+          {id:"FOOD_BEVERAGE",label:"Food & Beverage"},
+          {id:"GENERAL_FREIGHT",label:"General Freight"},
+          {id:"BUILDING_MATERIALS",label:"Building Materials"},
+          {id:"CLOTHING_TEXTILES",label:"Clothing & Textiles"},
+          {id:"INDUSTRIAL_MACHINERY",label:"Industrial Machinery"},
+          {id:"AUTOMOTIVE_PARTS",label:"Automotive Parts"},
+          {id:"CHEMICALS",label:"Chemicals (non-hazardous)"},
+          {id:"MEDICAL_SUPPLIES",label:"Medical Supplies"},
+          {id:"PAPER_PRODUCTS",label:"Paper Products"},
+          {id:"ELECTRONICS",label:"Electronics"},
+        ]);
+      })
+      .finally(() => setLoadingCommodities(false));
+  }, []);
+
+  const selectedRating = LS_COVERAGE_RATINGS.find(r => r.value === coverageRating) || LS_COVERAGE_RATINGS[0];
+
+  const handleGetQuote = async () => {
+    setStep("quoting"); setError("");
+    const val = parseFloat(shipValue) || 185000;
+
+    const reqBody = {
+      assuredName: load?.shipperName || "RFPlab Shipper",
+      coverageRating,                          // BASE_RATES | DEDUCTIBLE_100K | DEDUCTIBLE_250K
+      cargo: {
+        commodity: commodityId,
+        value: val,
+        currency: "USD",
+      },
+      equipment: {
+        type: load?.mode === "Reefer" ? "REEFER"
+            : load?.mode === "Flatbed" ? "FLATBED"
+            : "DRY_VAN",
+      },
+      stops: [
+        {
+          sequence: 1,
+          type: "PICKUP",
+          date: load?.pickup || load?.pickup_date || new Date().toISOString().slice(0,10),
+          location: {
+            city:    load?.origin?.city  || load?.orig_city  || "",
+            state:   load?.origin?.state || load?.orig_state || "",
+            country: "US",
+          },
         },
-        paymentMethodType: "INVOICE",
-      });
+        {
+          sequence: 2,
+          type: "DELIVERY",
+          date: load?.delivery || load?.delivery_date || new Date(Date.now()+172800000).toISOString().slice(0,10),
+          location: {
+            city:    load?.dest?.city  || load?.dest_city  || "",
+            state:   load?.dest?.state || load?.dest_state || "",
+            country: "US",
+          },
+        },
+      ],
+    };
+
+    setRawReq(reqBody);
+
+    try {
+      const data = await lsRequest("/api/insureLoad/quote", "POST", reqBody);
+      setRawRes(data);
+      setQuote(data);
       setStep("quoted");
-    }, 1400);
+    } catch(e) {
+      setError(e.message);
+      setRawRes({ error: e.message });
+      setStep("form");
+    }
   };
 
-  const handlePurchase = () => {
-    setStep("purchasing");
-    // Simulate POST /api/insureLoad/purchaseQuote
-    setTimeout(() => {
-      setCert({
-        certificateNumber: "LS-" + Math.random().toString(36).slice(2,10).toUpperCase(),
-        status: "ACTIVE",
-        premium: quote.insuranceProduct.premium,
-        serviceFee: quote.insuranceProduct.serviceFee,
-        tax: quote.insuranceProduct.tax,
-        limit: quote.insuranceProduct.limit,
-        deductible: quote.insuranceProduct.deductible,
-        certificateLink: "https://loadsure.net/certificate/view",
-        fileClaimLink: "https://loadsure.net/claims/new",
+  const handlePurchase = async () => {
+    setStep("purchasing"); setError("");
+    try {
+      const data = await lsRequest("/api/insureLoad/purchaseQuote", "POST", {
+        quoteToken: quote.quoteToken,
       });
+      setRawRes(data);
+      setCert(data);
       setStep("purchased");
-    }, 1200);
+    } catch(e) {
+      setError(e.message);
+      setStep("quoted");
+    }
   };
 
-  const total = quote ? (quote.insuranceProduct.premium + quote.insuranceProduct.serviceFee + quote.insuranceProduct.tax).toFixed(2) : null;
+  const product  = quote?.insuranceProduct || quote?.product || {};
+  const premium  = +(product.premium  || quote?.premium  || 0);
+  const svcFee   = +(product.serviceFee|| quote?.serviceFee|| 0);
+  const tax      = +(product.tax       || quote?.tax       || 0);
+  const limit    = +(product.limit     || quote?.limit     || parseFloat(shipValue)||0);
+  const deduct   = +(product.deductible|| quote?.deductible|| 0);
+  const total    = (premium + svcFee + tax).toFixed(2);
+  const prodName = product.name || quote?.productName || "All Risk";
+  const prodDesc = product.description || "";
+  const exclusions = product.commodityExclusions || [];
+
+  const mono = {fontFamily:"'DM Mono',monospace"};
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+      <div className="modal" style={{maxWidth:600}} onClick={e=>e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <div className="modal-title">🔗 Loadsure — Per-Load Cargo Insurance</div>
-            {load && <div style={{fontSize:11,color:"#8C8070",marginTop:3}}>{load.origin?.city}, {load.origin?.state} → {load.dest?.city}, {load.dest?.state}</div>}
+            <div className="modal-title">🔗 Loadsure — Cargo Insurance Quote</div>
+            {load && <div style={{fontSize:11,color:C.stone,marginTop:3}}>
+              {load.origin?.city||load.orig_city}, {load.origin?.state||load.orig_state} → {load.dest?.city||load.dest_city}, {load.dest?.state||load.dest_state}
+            </div>}
           </div>
-          <button className="btn btn-ghost" onClick={onClose}>✕</button>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button className="btn btn-ghost" style={{fontSize:10,color:C.stone}} onClick={()=>setShowDebug(d=>!d)}>
+              {showDebug?"Hide Debug":"Debug"}
+            </button>
+            <button className="btn btn-ghost" onClick={onClose}>✕</button>
+          </div>
         </div>
         <div className="modal-body">
+          {error && <div className="alert warn" style={{marginBottom:12}}>{error}</div>}
+
+          {/* Debug panel */}
+          {showDebug && (
+            <div style={{background:"#0A1A14",borderRadius:6,padding:12,marginBottom:14,maxHeight:240,overflowY:"auto"}}>
+              <div style={{fontSize:9,fontWeight:800,color:C.green,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>API Debug</div>
+              {rawReq && <><div style={{fontSize:9,color:"rgba(232,242,238,.4)",marginBottom:3}}>→ POST /api/insureLoad/quote</div>
+                <pre style={{fontSize:10,color:"rgba(232,242,238,.8)",whiteSpace:"pre-wrap",marginBottom:8,...mono}}>{JSON.stringify(rawReq,null,2)}</pre></>}
+              {rawRes && <><div style={{fontSize:9,color:"rgba(232,242,238,.4)",marginBottom:3}}>← RESPONSE</div>
+                <pre style={{fontSize:10,color:C.green,whiteSpace:"pre-wrap",...mono}}>{JSON.stringify(rawRes,null,2)}</pre></>}
+              {!rawReq && <div style={{fontSize:11,color:"rgba(232,242,238,.4)"}}>No request sent yet</div>}
+            </div>
+          )}
+
           {step==="form" && (
             <div>
-              <div className="alert info" style={{marginBottom:14}}>
-                Powered by <strong>Loadsure API v2.6</strong> — All Risk Domestic coverage. Quote is binding for 10 minutes after generation.
+              {/* Coverage Rating selector — the main differentiator */}
+              <div style={{marginBottom:16}}>
+                <label style={{marginBottom:8}}>Coverage Rating</label>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {LS_COVERAGE_RATINGS.map(r=>(
+                    <div key={r.value} onClick={()=>setCoverageRating(r.value)}
+                      style={{border:`2px solid ${coverageRating===r.value?C.green:C.sand}`,
+                        borderRadius:7,padding:"12px 14px",cursor:"pointer",
+                        background:coverageRating===r.value?C.greenlt:C.warmWhite,
+                        transition:"all .15s"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${coverageRating===r.value?C.green:C.sand}`,background:coverageRating===r.value?C.green:"transparent",flexShrink:0}}/>
+                          <span style={{fontWeight:700,fontSize:13,color:C.black}}>{r.label}</span>
+                        </div>
+                        <span style={{fontSize:9,fontWeight:800,background:coverageRating===r.value?C.green:C.parchment,
+                          color:coverageRating===r.value?C.black:C.stone,
+                          padding:"2px 8px",borderRadius:2,letterSpacing:.5,textTransform:"uppercase"}}>
+                          {r.badge}
+                        </span>
+                      </div>
+                      <div style={{fontSize:11,color:C.stone,lineHeight:1.6,paddingLeft:24}}>{r.desc}</div>
+                      <div style={{fontSize:10,fontWeight:700,color:coverageRating===r.value?C.green:C.stone,paddingLeft:24,marginTop:4}}>
+                        {r.deductibleNote}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="fg"><label>Declared Shipment Value (USD)</label>
-                <input type="number" value={shipValue} onChange={e=>setShipValue(e.target.value)} placeholder="185,000"/>
-                <div style={{fontSize:10,color:"#8C8070",marginTop:3}}>Coverage limit = declared value. Deductible: $500 standard.</div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+                <div className="fg">
+                  <label>Declared Shipment Value (USD)</label>
+                  <input type="number" value={shipValue} onChange={e=>setShipValue(e.target.value)} placeholder="185000"/>
+                  <div style={{fontSize:10,color:C.stone,marginTop:3}}>Coverage limit = this value</div>
+                </div>
+                <div className="fg">
+                  <label>Commodity {loadingCommodities&&<span style={{fontSize:9,color:C.stone}}>(loading…)</span>}</label>
+                  <select value={commodityId} onChange={e=>setCommodityId(e.target.value)} disabled={loadingCommodities}>
+                    {commodities.map(c=>(
+                      <option key={c.id||c.value||c} value={c.id||c.value||c}>
+                        {c.label||c.name||c.description||c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="fg"><label>Commodity</label>
-                <select value={commodity} onChange={e=>setCommodity(e.target.value)}>
-                  {["Beverages","Food & Grocery","Industrial Machinery","Building Materials","Clothing & Textiles","Paper Products","Chemicals","Electronics (excl. high-value tech)","Medical Supplies","Automotive Parts"].map(c=><option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                {load && [
-                  ["Origin", `${load.origin?.city||"—"}, ${load.origin?.state||""}`],
-                  ["Destination", `${load.dest?.city||"—"}, ${load.dest?.state||""}`],
-                  ["Pickup", load.pickup||"—"],
-                  ["Delivery", load.delivery||"—"],
-                  ["Mode", load.mode||"Dry Van"],
-                  ["Carrier", load.awardedTo||"TBD"],
-                ].map(([k,v])=>(
-                  <div key={k} style={{fontSize:11}}>
-                    <div style={{color:"#8C8070",fontWeight:700,letterSpacing:.5,textTransform:"uppercase",fontSize:9,marginBottom:2}}>{k}</div>
-                    <div style={{fontWeight:600,color:"#111111"}}>{v}</div>
+
+              {load && (
+                <div style={{background:C.parchment,borderRadius:7,padding:"12px 14px",marginBottom:14}}>
+                  <div style={{fontSize:9,fontWeight:800,color:C.stone,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Shipment Details</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px 12px"}}>
+                    {[
+                      ["Origin",`${load.origin?.city||load.orig_city||"—"}, ${load.origin?.state||load.orig_state||""}`],
+                      ["Destination",`${load.dest?.city||load.dest_city||"—"}, ${load.dest?.state||load.dest_state||""}`],
+                      ["Mode",load.mode||"Dry Van"],
+                      ["Pickup",load.pickup||load.pickup_date||"—"],
+                      ["Delivery",load.delivery||load.delivery_date||"—"],
+                      ["Carrier",load.awardedTo||load.awarded_to||"TBD"],
+                    ].map(([k,v])=>(
+                      <div key={k}>
+                        <div style={{fontSize:9,color:C.stone,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,marginBottom:1}}>{k}</div>
+                        <div style={{fontSize:12,fontWeight:600,color:C.black}}>{v}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
               <button className="btn btn-primary" style={{width:"100%",justifyContent:"center",fontSize:13}} onClick={handleGetQuote}>
-                Get Insurance Quote →
+                Get Live Quote — {selectedRating.label} →
               </button>
             </div>
           )}
@@ -3426,44 +3615,55 @@ function LoadsureQuoteModal({ load, onClose }) {
           {step==="quoting" && (
             <div style={{textAlign:"center",padding:"40px 20px"}}>
               <div style={{fontSize:28,marginBottom:12}}>⏳</div>
-              <div style={{fontWeight:700,fontSize:14,color:"#111111",marginBottom:6}}>Getting your quote…</div>
-              <div style={{fontSize:12,color:"#8C8070"}}>Sending shipment details to Loadsure API</div>
+              <div style={{fontWeight:700,fontSize:14,color:C.black,marginBottom:6}}>Getting your quote…</div>
+              <div style={{fontSize:12,color:C.stone}}>Calling Loadsure API · {selectedRating.label}</div>
             </div>
           )}
 
           {step==="quoted" && quote && (
             <div>
-              <div style={{background:"#EBF0DC",border:"1px solid #5C6B2E",borderRadius:8,padding:"16px 18px",marginBottom:14}}>
-                <div style={{fontSize:10,fontWeight:800,color:"#5C6B2E",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>✓ Quote Ready — {quote.insuranceProduct.name}</div>
-                <div style={{fontSize:11,color:"#5A534A",lineHeight:1.6,marginBottom:12}}>{quote.insuranceProduct.description}</div>
+              <div style={{background:C.greenlt,border:`1px solid ${C.green}`,borderRadius:8,padding:"16px 18px",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:800,color:C.green,letterSpacing:1,textTransform:"uppercase"}}>✓ Quote Ready — {prodName}</div>
+                    {prodDesc && <div style={{fontSize:11,color:C.ash,lineHeight:1.5,marginTop:3,maxWidth:360}}>{prodDesc}</div>}
+                  </div>
+                  <span style={{fontSize:9,fontWeight:800,background:C.green,color:C.black,padding:"2px 8px",borderRadius:2,whiteSpace:"nowrap",marginLeft:8}}>
+                    {selectedRating.badge}
+                  </span>
+                </div>
                 {[
-                  ["Coverage Limit","$"+quote.insuranceProduct.limit.toLocaleString()],
-                  ["Deductible","$"+quote.insuranceProduct.deductible.toLocaleString()],
-                  ["Premium","$"+quote.insuranceProduct.premium.toFixed(2)],
-                  ["Service Fee","$"+quote.insuranceProduct.serviceFee.toFixed(2)],
-                  ["Tax","$"+quote.insuranceProduct.tax.toFixed(2)],
+                  ["Coverage Limit",  "$"+Number(limit).toLocaleString()],
+                  ["Deductible",       deduct?"$"+Number(deduct).toLocaleString():selectedRating.deductibleNote],
+                  ["Premium",         "$"+premium.toFixed(2)],
+                  ["Service Fee",     "$"+svcFee.toFixed(2)],
+                  ["Tax & Fees",      "$"+tax.toFixed(2)],
                 ].map(([k,v])=>(
-                  <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(92,107,46,.15)",fontSize:12}}>
-                    <span style={{color:"#5A534A"}}>{k}</span>
-                    <span style={{fontWeight:700,color:"#111111",fontFamily:"'DM Mono',monospace"}}>{v}</span>
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",
+                    borderBottom:`1px solid rgba(0,200,83,.12)`,fontSize:12}}>
+                    <span style={{color:C.ash}}>{k}</span>
+                    <span style={{fontWeight:700,color:C.black,...mono}}>{v}</span>
                   </div>
                 ))}
-                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0 0",fontSize:14,fontWeight:800}}>
-                  <span style={{color:"#111111"}}>Total Due</span>
-                  <span style={{color:"#5C6B2E",fontFamily:"'DM Mono',monospace"}}>${total}</span>
+                <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0 0",fontSize:15,fontWeight:800}}>
+                  <span style={{color:C.black}}>Total Due</span>
+                  <span style={{color:C.green,...mono}}>${total}</span>
                 </div>
               </div>
-              <div style={{fontSize:10,color:"#8C8070",marginBottom:12}}>
-                Quote token: <span style={{fontFamily:"'DM Mono',monospace"}}>{quote.quoteToken}</span> · Expires in 10 min · Payment via invoice
+
+              <div style={{fontSize:10,color:C.stone,marginBottom:12}}>
+                Token: <span style={mono}>{quote.quoteToken}</span> · Expires 10 min · Invoice payment
               </div>
-              {quote.insuranceProduct.commodityExclusions.length > 0 && (
+
+              {exclusions.length > 0 && (
                 <div className="alert warn" style={{marginBottom:12,fontSize:11}}>
-                  <strong>Exclusions:</strong> {quote.insuranceProduct.commodityExclusions.join(", ")} — not covered under this policy.
+                  <strong>Exclusions:</strong> {exclusions.join(", ")}
                 </div>
               )}
+
               <div style={{display:"flex",gap:8}}>
                 <button className="btn btn-outline" style={{flex:1,justifyContent:"center"}} onClick={()=>setStep("form")}>← Revise</button>
-                <button className="btn btn-green" style={{flex:2,justifyContent:"center",fontSize:13}} onClick={handlePurchase}>
+                <button className="btn btn-green" style={{flex:2,justifyContent:"center"}} onClick={handlePurchase}>
                   Purchase Coverage — ${total} →
                 </button>
               </div>
@@ -3473,8 +3673,8 @@ function LoadsureQuoteModal({ load, onClose }) {
           {step==="purchasing" && (
             <div style={{textAlign:"center",padding:"40px 20px"}}>
               <div style={{fontSize:28,marginBottom:12}}>⏳</div>
-              <div style={{fontWeight:700,fontSize:14,color:"#111111",marginBottom:6}}>Purchasing coverage…</div>
-              <div style={{fontSize:12,color:"#8C8070"}}>Sending purchase request to Loadsure</div>
+              <div style={{fontWeight:700,fontSize:14,color:C.black,marginBottom:6}}>Purchasing coverage…</div>
+              <div style={{fontSize:12,color:C.stone}}>Submitting to Loadsure</div>
             </div>
           )}
 
@@ -3482,26 +3682,27 @@ function LoadsureQuoteModal({ load, onClose }) {
             <div>
               <div style={{textAlign:"center",marginBottom:20}}>
                 <div style={{fontSize:42,marginBottom:8}}>✅</div>
-                <div style={{fontWeight:800,fontSize:16,color:"#111111",marginBottom:4}}>Coverage Active</div>
-                <div style={{fontSize:12,color:"#8C8070"}}>Certificate issued by Loadsure</div>
+                <div style={{fontWeight:800,fontSize:16,color:C.black,marginBottom:4}}>Coverage Active</div>
+                <div style={{fontSize:12,color:C.stone}}>Certificate issued by Loadsure · {selectedRating.label}</div>
               </div>
-              <div style={{background:"#EDE8DF",borderRadius:8,padding:"14px 16px",marginBottom:14}}>
+              <div style={{background:C.parchment,borderRadius:8,padding:"14px 16px",marginBottom:14}}>
                 {[
-                  ["Certificate #", cert.certificateNumber],
-                  ["Status", "Active"],
-                  ["Coverage", "$"+cert.limit.toLocaleString()],
-                  ["Deductible", "$"+cert.deductible.toLocaleString()],
-                  ["Total Paid", "$"+(cert.premium+cert.serviceFee+cert.tax).toFixed(2)],
+                  ["Certificate #", cert.certificateNumber||cert.id||"—"],
+                  ["Coverage Rating", selectedRating.label],
+                  ["Coverage Limit", "$"+Number(cert.limit||cert.coverage||limit).toLocaleString()],
+                  ["Deductible", deduct?"$"+Number(cert.deductible||deduct).toLocaleString():selectedRating.deductibleNote],
+                  ["Total Paid", "$"+Number(cert.premium||premium).toFixed(2)],
                 ].map(([k,v])=>(
-                  <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #D4C9B8",fontSize:12}}>
-                    <span style={{color:"#8C8070"}}>{k}</span>
-                    <span style={{fontWeight:700,color:"#111111",fontFamily:k==="Certificate #"?"'DM Mono',monospace":"inherit"}}>{v}</span>
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",
+                    borderBottom:`1px solid ${C.sand}`,fontSize:12}}>
+                    <span style={{color:C.stone}}>{k}</span>
+                    <span style={{fontWeight:700,color:C.black}}>{v}</span>
                   </div>
                 ))}
               </div>
               <div style={{display:"flex",gap:8}}>
-                <a href={cert.certificateLink} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{flex:1,justifyContent:"center",textDecoration:"none"}}>⬇ Download Certificate</a>
-                <a href={cert.fileClaimLink} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{flex:1,justifyContent:"center",textDecoration:"none"}}>📋 File a Claim</a>
+                {cert.certificateLink && <a href={cert.certificateLink} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{flex:1,justifyContent:"center",textDecoration:"none"}}>⬇ Certificate</a>}
+                {cert.fileClaimLink && <a href={cert.fileClaimLink} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{flex:1,justifyContent:"center",textDecoration:"none"}}>📋 File Claim</a>}
               </div>
               <button className="btn btn-primary" style={{width:"100%",justifyContent:"center",marginTop:8}} onClick={onClose}>Done</button>
             </div>
@@ -3513,203 +3714,316 @@ function LoadsureQuoteModal({ load, onClose }) {
 }
 
 function RiskLoadsurePage({ setPage }) {
-  const [apiKey, setApiKey] = useState(localStorage.getItem("ls_api_key")||"");
+  const [apiKey]      = useState(localStorage.getItem("ls_api_key")||"");
   const [apiKeyInput, setApiKeyInput] = useState("");
-  const [connected, setConnected] = useState(!!localStorage.getItem("ls_api_key"));
-  const [connecting, setConnecting] = useState(false);
-  const [connErr, setConnErr] = useState("");
-  const [activeTab, setActiveTab] = useState("certificates");
-  const [quoteModal, setQuoteModal] = useState(false);
-  const [claimModal, setClaimModal] = useState(null);
+  const [connected, setConnected]     = useState(!!localStorage.getItem("ls_api_key"));
+  const [connecting, setConnecting]   = useState(false);
+  const [connErr, setConnErr]         = useState("");
+  const [activeTab, setActiveTab]     = useState("certificates");
+  const [quoteModal, setQuoteModal]   = useState(false);
 
-  const handleConnect = () => {
+  // Live data from API
+  const [certs, setCerts]   = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // API test panel
+  const [testValue, setTestValue]   = useState("185000");
+  const [testResult, setTestResult] = useState(null);
+  const [testing, setTesting]       = useState(false);
+  const [testErr, setTestErr]       = useState("");
+
+  useEffect(() => {
+    if (!connected) return;
+    loadData();
+  }, [connected]);
+
+  const loadData = async () => {
+    setLoadingData(true);
+    try {
+      const certsData = await lsRequest("/api/certificates");
+      setCerts(Array.isArray(certsData) ? certsData : certsData.certificates || certsData.data || []);
+    } catch(e) { setCerts([]); }
+    try {
+      const claimsData = await lsRequest("/api/claims");
+      setClaims(Array.isArray(claimsData) ? claimsData : claimsData.claims || claimsData.data || []);
+    } catch(e) { setClaims([]); }
+    setLoadingData(false);
+  };
+
+  const handleConnect = async () => {
     if (!apiKeyInput.trim()) return;
     setConnecting(true); setConnErr("");
-    // Simulate API key validation against Loadsure /api/health
-    setTimeout(() => {
-      localStorage.setItem("ls_api_key", apiKeyInput.trim());
-      setApiKey(apiKeyInput.trim());
+    try {
+      // Validate key with a real API call — fetch commodity list
+      const key = apiKeyInput.trim();
+      const res = await fetch(`${LS_BASE}/api/commodities`, {
+        headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" }
+      });
+      if (!res.ok) throw new Error(`Invalid key — HTTP ${res.status}`);
+      localStorage.setItem("ls_api_key", key);
       setConnected(true);
-      setConnecting(false);
-    }, 1000);
+    } catch(e) {
+      setConnErr(e.message || "Could not validate API key");
+    }
+    setConnecting(false);
   };
 
   const handleDisconnect = () => {
     localStorage.removeItem("ls_api_key");
-    setApiKey(""); setConnected(false); setApiKeyInput("");
+    setConnected(false); setApiKeyInput("");
+    setCerts([]); setClaims([]);
+  };
+
+  const handleTestQuote = async () => {
+    setTesting(true); setTestErr(""); setTestResult(null);
+    const val = parseFloat(testValue) || 185000;
+    const baseBody = {
+      assuredName: "RFPlab API Test",
+      cargo: { commodity: "FOOD_BEVERAGE", value: val, currency: "USD" },
+      equipment: { type: "DRY_VAN" },
+      stops: [
+        { sequence:1, type:"PICKUP",   date:"2026-08-01", location:{ city:"Chicago", state:"IL", country:"US" } },
+        { sequence:2, type:"DELIVERY", date:"2026-08-03", location:{ city:"Dallas",  state:"TX", country:"US" } },
+      ],
+    };
+
+    // Fire all three coverage ratings in parallel
+    const ratings = ["BASE_RATES", "DEDUCTIBLE_100K", "DEDUCTIBLE_250K"];
+    try {
+      const results = await Promise.allSettled(
+        ratings.map(r => lsRequest("/api/insureLoad/quote", "POST", { ...baseBody, coverageRating: r }))
+      );
+      const all = {};
+      ratings.forEach((r, i) => {
+        all[r] = results[i].status === "fulfilled"
+          ? results[i].value
+          : { error: results[i].reason?.message || "Failed" };
+      });
+      setTestResult({ success: true, all, request: baseBody });
+    } catch(e) {
+      setTestErr(e.message);
+      setTestResult({ success: false, error: e.message });
+    }
+    setTesting(false);
   };
 
   const maskedKey = apiKey ? apiKey.slice(0,8)+"••••••••••••"+apiKey.slice(-4) : "";
-
-  const totalPremium = LS_SAMPLE_CERTS.filter(c=>c.status==="ACTIVE").reduce((s,c)=>s+c.premium,0);
-  const totalCoverage = LS_SAMPLE_CERTS.filter(c=>c.status==="ACTIVE").reduce((s,c)=>s+c.coverage,0);
+  const activeCerts  = certs.filter(c=>c.status==="ACTIVE");
+  const totalPremium = activeCerts.reduce((s,c)=>s+(c.premium||0),0);
+  const totalCoverage= activeCerts.reduce((s,c)=>s+(c.limit||c.coverage||0),0);
 
   return (
     <div>
       <div className="section-header">
         <div>
           <div className="page-title">Cargo Insurance — Loadsure</div>
-          <div className="page-sub">Per-load all-risk coverage, certificates, and claims management</div>
+          <div className="page-sub">Per-load all-risk coverage · Live API connection</div>
         </div>
-        {connected && (
-          <button className="btn btn-primary" onClick={()=>setQuoteModal(true)}>+ Get Quote & Purchase</button>
-        )}
+        {connected && <button className="btn btn-green" onClick={()=>setQuoteModal(true)}>+ Get Quote & Purchase</button>}
       </div>
 
-      {/* Connection panel */}
-      <div className="card" style={{marginBottom:16,borderLeft:`3px solid ${connected?"#5C6B2E":"#D4C9B8"}`}}>
+      {/* Connection card */}
+      <div className="card" style={{marginBottom:16,borderLeft:`3px solid ${connected?C.green:C.sand}`}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
           <div style={{display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:44,height:44,background:connected?"#EBF0DC":"#EDE8DF",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🔗</div>
+            <div style={{width:44,height:44,background:connected?C.greenlt:C.parchment,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🔗</div>
             <div>
-              <div style={{fontWeight:800,fontSize:14,color:"#111111",display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontWeight:800,fontSize:14,color:C.black,display:"flex",alignItems:"center",gap:8}}>
                 Loadsure
                 {connected
-                  ? <span style={{background:"#EBF0DC",color:"#5C6B2E",padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,letterSpacing:.5}}>CONNECTED</span>
-                  : <span style={{background:"#EDE8DF",color:"#8C8070",padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,letterSpacing:.5}}>NOT CONNECTED</span>}
+                  ? <span style={{background:C.greenlt,color:C.green,padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,letterSpacing:.5}}>CONNECTED</span>
+                  : <span style={{background:C.parchment,color:C.stone,padding:"2px 8px",borderRadius:2,fontSize:9,fontWeight:800,letterSpacing:.5}}>NOT CONNECTED</span>}
               </div>
-              <div style={{fontSize:11,color:"#8C8070",marginTop:2}}>
-                {connected
-                  ? <>API key: <span style={{fontFamily:"'DM Mono',monospace",fontSize:11}}>{maskedKey}</span></>
-                  : "Connect your Loadsure account to enable per-load cargo insurance quoting and purchasing."}
+              <div style={{fontSize:11,color:C.stone,marginTop:2}}>
+                {connected ? <>API key: <span style={{fontFamily:"'DM Mono',monospace"}}>{maskedKey}</span></> : "Paste your Loadsure API key to connect"}
               </div>
             </div>
           </div>
           {connected
             ? <button className="btn btn-outline btn-sm" onClick={handleDisconnect}>Disconnect</button>
-            : (
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input style={{maxWidth:260,fontFamily:"'DM Mono',monospace",fontSize:12}} type="password"
-                  value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)}
-                  placeholder="Paste your Loadsure API key…"/>
+            : <div style={{display:"flex",gap:8,alignItems:"center",flex:1,maxWidth:400}}>
+                <input type="password" value={apiKeyInput} onChange={e=>setApiKeyInput(e.target.value)}
+                  placeholder="Paste Loadsure API key…"
+                  style={{fontFamily:"'DM Mono',monospace",fontSize:12}}/>
                 <button className="btn btn-primary btn-sm" onClick={handleConnect} disabled={connecting||!apiKeyInput.trim()}>
-                  {connecting?"Connecting…":"Connect"}
+                  {connecting?"Checking…":"Connect"}
                 </button>
-              </div>
-            )}
+              </div>}
         </div>
-        {!connected && (
-          <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid #D4C9B8"}}>
-            <div style={{fontSize:11,color:"#8C8070",lineHeight:1.7}}>
-              <strong style={{color:"#111111"}}>How to get your API key:</strong> Log in to your Loadsure partner portal →
-              Administration → Details → Show API Key. RFPlab uses the <strong>Quote API</strong> (2-step: get quote → purchase) to embed insurance directly in your spot load workflow.
-              Coverage is All Risk Domestic — up to full invoice value. Payment via invoice.
-            </div>
-          </div>
-        )}
+        {connErr && <div className="alert warn" style={{marginTop:12,marginBottom:0}}>{connErr}</div>}
       </div>
 
       {connected && (
         <>
           {/* Stats */}
           <div className="stat-grid">
-            <div className="stat-tile"><div className="stat-label">Active Certificates</div><div className="stat-value">{LS_SAMPLE_CERTS.filter(c=>c.status==="ACTIVE").length}</div></div>
-            <div className="stat-tile"><div className="stat-label">Total Coverage</div><div className="stat-value" style={{fontSize:18}}>${(totalCoverage/1000).toFixed(0)}K</div></div>
-            <div className="stat-tile"><div className="stat-label">YTD Premiums</div><div className="stat-value" style={{fontSize:18,fontFamily:"'DM Mono',monospace"}}>${totalPremium.toFixed(2)}</div></div>
-            <div className="stat-tile"><div className="stat-label">Open Claims</div><div className="stat-value" style={{color:LS_SAMPLE_CLAIMS.length>0?"#9B3A1E":"#5C6B2E"}}>{LS_SAMPLE_CLAIMS.length}</div></div>
-          </div>
-
-          {/* How it works */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
-            {[
-              {step:"1",title:"Post a Load",desc:"Create a spot load on the Spot Board with route, cargo, and carrier details."},
-              {step:"2",title:"Get a Quote",desc:"Click 'Get Quote' on any load — RFPlab calls the Loadsure Quote API and returns a live premium instantly."},
-              {step:"3",title:"Purchase & Award",desc:"Confirm the quote to issue a certificate. Award the load and the carrier moves with coverage in place."},
-            ].map(s=>(
-              <div key={s.step} style={{background:"#EDE8DF",borderRadius:8,padding:"14px 16px",display:"flex",gap:12}}>
-                <div style={{width:28,height:28,background:"#111111",color:"#F5F0E8",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13,flexShrink:0}}>{s.step}</div>
-                <div>
-                  <div style={{fontWeight:700,fontSize:12,color:"#111111",marginBottom:3}}>{s.title}</div>
-                  <div style={{fontSize:11,color:"#8C8070",lineHeight:1.6}}>{s.desc}</div>
-                </div>
-              </div>
-            ))}
+            <div className="stat-tile"><div className="stat-label">Active Certs</div><div className="stat-value">{loadingData?"…":activeCerts.length}</div></div>
+            <div className="stat-tile"><div className="stat-label">Total Coverage</div><div className="stat-value" style={{fontSize:18}}>{loadingData?"…":"$"+(totalCoverage/1000).toFixed(0)+"K"}</div></div>
+            <div className="stat-tile"><div className="stat-label">YTD Premiums</div><div className="stat-value" style={{fontSize:18,fontFamily:"'DM Mono',monospace"}}>{loadingData?"…":"$"+totalPremium.toFixed(2)}</div></div>
+            <div className="stat-tile"><div className="stat-label">Open Claims</div><div className="stat-value" style={{color:claims.length>0?C.rust:C.green}}>{loadingData?"…":claims.length}</div></div>
           </div>
 
           <div className="tab-bar">
-            {["certificates","claims","settings"].map(t=>(
-              <div key={t} className={`tab${activeTab===t?" active":""}`} onClick={()=>setActiveTab(t)} style={{textTransform:"capitalize"}}>{t}</div>
+            {["certificates","claims","api_test","settings"].map(t=>(
+              <div key={t} className={`tab${activeTab===t?" active":""}`} onClick={()=>setActiveTab(t)}
+                style={{textTransform:"capitalize"}}>{t==="api_test"?"API Test":t}</div>
             ))}
           </div>
 
+          {/* Certificates */}
           {activeTab==="certificates" && (
             <div>
-              <div className="card" style={{padding:0,overflow:"hidden"}}>
-                <table>
-                  <thead><tr>
-                    <th>Certificate #</th><th>Load</th><th>Carrier</th><th>Coverage</th><th>Premium</th><th>Pickup</th><th>Status</th><th></th>
-                  </tr></thead>
-                  <tbody>
-                    {LS_SAMPLE_CERTS.map(c=>(
-                      <tr key={c.certNum}>
-                        <td className="mono" style={{fontSize:10,color:"#8C8070"}}>{c.certNum.slice(0,8)}…</td>
-                        <td style={{fontWeight:600,color:"#111111",fontSize:11}}>{c.load}</td>
-                        <td style={{fontSize:11,color:"#5A534A"}}>{c.carrier}</td>
-                        <td className="mono" style={{fontWeight:600}}>${c.coverage.toLocaleString()}</td>
-                        <td className="mono" style={{color:"#5C6B2E",fontWeight:700}}>${c.premium.toFixed(2)}</td>
-                        <td style={{fontSize:11,color:"#8C8070"}}>{c.pickupDate}</td>
-                        <td><LoadsureStatusBadge status={c.status}/></td>
-                        <td>
-                          <div style={{display:"flex",gap:4}}>
-                            <button className="btn btn-ghost btn-xs" style={{fontSize:10}}>⬇ PDF</button>
-                            {c.status==="ACTIVE" && <button className="btn btn-ghost btn-xs" style={{fontSize:10,color:"#9B3A1E"}}>Cancel</button>}
+              {loadingData
+                ? <div className="card" style={{textAlign:"center",padding:32,color:C.stone}}>Loading from Loadsure…</div>
+                : certs.length===0
+                  ? <div className="card" style={{textAlign:"center",padding:"44px 20px",border:`2px dashed ${C.sand}`}}>
+                      <div style={{fontSize:32,marginBottom:10}}>📄</div>
+                      <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No certificates yet</div>
+                      <div style={{fontSize:12,color:C.stone,marginBottom:16}}>Purchase your first per-load coverage to see certificates here.</div>
+                      <button className="btn btn-green" onClick={()=>setQuoteModal(true)}>Get First Quote →</button>
+                    </div>
+                  : <div className="card" style={{padding:0,overflow:"hidden"}}>
+                      <table>
+                        <thead><tr>
+                          <th>Certificate #</th><th>Load / Route</th><th>Coverage</th><th>Premium</th><th>Pickup</th><th>Status</th><th></th>
+                        </tr></thead>
+                        <tbody>
+                          {certs.map((c,i)=>(
+                            <tr key={c.certificateNumber||c.id||i}>
+                              <td className="mono" style={{fontSize:10,color:C.stone}}>{(c.certificateNumber||c.id||"").slice(0,12)}…</td>
+                              <td style={{fontWeight:600,fontSize:11}}>{c.originCity||"—"} → {c.destinationCity||"—"}</td>
+                              <td className="mono">${Number(c.limit||c.coverage||0).toLocaleString()}</td>
+                              <td className="mono" style={{fontWeight:700,color:C.green}}>${Number(c.premium||0).toFixed(2)}</td>
+                              <td style={{fontSize:11,color:C.stone}}>{c.pickupDate||c.pickup_date||"—"}</td>
+                              <td><LoadsureStatusBadge status={c.status}/></td>
+                              <td>
+                                {c.certificateLink && <a href={c.certificateLink} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-xs" style={{textDecoration:"none"}}>⬇</a>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>}
+            </div>
+          )}
+
+          {/* Claims */}
+          {activeTab==="claims" && (
+            <div>
+              {loadingData
+                ? <div className="card" style={{textAlign:"center",padding:32,color:C.stone}}>Loading…</div>
+                : claims.length===0
+                  ? <div className="card" style={{textAlign:"center",padding:"44px 20px",border:`2px dashed ${C.sand}`}}>
+                      <div style={{fontSize:32,marginBottom:10}}>📋</div>
+                      <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No claims filed</div>
+                      <div style={{fontSize:12,color:C.stone}}>Claims are filed against active certificates when cargo is lost or damaged.</div>
+                    </div>
+                  : <div className="card" style={{padding:0,overflow:"hidden"}}>
+                      <table>
+                        <thead><tr>
+                          <th>Claim #</th><th>Certificate</th><th>Cause of Loss</th><th>Amount</th><th>Filed</th><th>Status</th>
+                        </tr></thead>
+                        <tbody>
+                          {claims.map((cl,i)=>(
+                            <tr key={cl.claimNumber||cl.id||i}>
+                              <td className="mono" style={{fontSize:10,fontWeight:700}}>{cl.claimNumber||cl.id}</td>
+                              <td className="mono" style={{fontSize:10,color:C.stone}}>{(cl.certificateNumber||"").slice(0,12)}…</td>
+                              <td style={{fontSize:11}}>{(cl.causeOfLoss||"").replace(/_/g," ")}</td>
+                              <td className="mono" style={{fontWeight:700,color:C.rust}}>${Number(cl.lostValue||cl.amount||0).toLocaleString()}</td>
+                              <td style={{fontSize:11,color:C.stone}}>{cl.filedDate||cl.filed||"—"}</td>
+                              <td><LoadsureStatusBadge status={cl.status}/></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>}
+            </div>
+          )}
+
+          {/* API Test Panel */}
+          {activeTab==="api_test" && (
+            <div>
+              <div className="card">
+                <div className="card-title" style={{marginBottom:4}}>Live API Test — All Coverage Ratings</div>
+                <div style={{fontSize:12,color:C.stone,marginBottom:16}}>
+                  Fires a real quote request for all three coverage ratings simultaneously so you can compare pricing and verify the API is returning correct values.
+                </div>
+                <div style={{display:"flex",gap:10,alignItems:"flex-end",marginBottom:14}}>
+                  <div style={{flex:1}}>
+                    <label>Declared Value (USD)</label>
+                    <input type="number" value={testValue} onChange={e=>setTestValue(e.target.value)} placeholder="185000"/>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleTestQuote} disabled={testing} style={{flexShrink:0}}>
+                    {testing?"Testing all 3…":"Run Test — All Ratings"}
+                  </button>
+                  <button className="btn btn-outline" onClick={loadData} style={{flexShrink:0}}>↻ Refresh</button>
+                </div>
+                {testErr && <div className="alert warn" style={{marginBottom:10}}>{testErr}</div>}
+
+                {testResult && testResult.success && testResult.all && (
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:800,color:C.stone,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Premium Comparison — ${Number(testValue).toLocaleString()}</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                      {LS_COVERAGE_RATINGS.map(r=>{
+                        const res = testResult.all[r.value];
+                        const prod = res?.insuranceProduct || res?.product || {};
+                        const prem = +(prod.premium||res?.premium||0);
+                        const fee  = +(prod.serviceFee||res?.serviceFee||0);
+                        const tax2 = +(prod.tax||res?.tax||0);
+                        const tot  = (prem+fee+tax2).toFixed(2);
+                        const ok   = !!res && !res.error;
+                        return (
+                          <div key={r.value} style={{border:`1px solid ${ok?C.green:C.sand}`,borderRadius:7,padding:"12px 14px",background:ok?C.greenlt:C.parchment}}>
+                            <div style={{fontWeight:700,fontSize:12,color:C.black,marginBottom:4}}>{r.label}</div>
+                            <div style={{fontSize:10,color:C.stone,marginBottom:8}}>{r.deductibleNote}</div>
+                            {ok
+                              ? <>
+                                  <div style={{fontSize:20,fontWeight:800,color:C.green,fontFamily:"'DM Mono',monospace"}}>${tot}</div>
+                                  <div style={{fontSize:10,color:C.stone,marginTop:2}}>
+                                    Premium: ${prem.toFixed(2)} · Fee: ${fee.toFixed(2)} · Tax: ${tax2.toFixed(2)}
+                                  </div>
+                                </>
+                              : <div style={{fontSize:11,color:C.rust}}>{res?.error||"No response"}</div>}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {testResult && (
+                  <div style={{background:"#0A1A14",borderRadius:6,padding:14,maxHeight:400,overflowY:"auto"}}>
+                    <div style={{fontSize:9,fontWeight:800,color:C.green,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>→ Requests / ← Responses</div>
+                    {testResult.success && testResult.all
+                      ? Object.entries(testResult.all).map(([rating,resp])=>(
+                          <div key={rating} style={{marginBottom:12}}>
+                            <div style={{fontSize:9,color:"rgba(232,242,238,.4)",marginBottom:3}}>{rating}</div>
+                            <pre style={{fontSize:10,color:resp?.error?C.rust:C.green,whiteSpace:"pre-wrap",fontFamily:"'DM Mono',monospace"}}>{JSON.stringify(resp,null,2)}</pre>
+                          </div>
+                        ))
+                      : <pre style={{fontSize:10,color:C.rust,whiteSpace:"pre-wrap",fontFamily:"'DM Mono',monospace"}}>{JSON.stringify(testResult,null,2)}</pre>}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {activeTab==="claims" && (
-            <div>
-              {LS_SAMPLE_CLAIMS.length===0
-                ? <div className="card" style={{textAlign:"center",padding:"40px",border:"2px dashed #D4C9B8"}}>
-                    <div style={{fontSize:32,marginBottom:10}}>📋</div>
-                    <div style={{fontWeight:600,fontSize:14,color:"#111111",marginBottom:6}}>No claims filed</div>
-                    <div style={{fontSize:12,color:"#8C8070"}}>Claims are filed against active certificates when cargo loss or damage occurs.</div>
-                  </div>
-                : <div className="card" style={{padding:0,overflow:"hidden"}}>
-                    <table>
-                      <thead><tr>
-                        <th>Claim #</th><th>Certificate</th><th>Load</th><th>Cause of Loss</th><th>Claimed Value</th><th>Filed</th><th>Status</th><th></th>
-                      </tr></thead>
-                      <tbody>
-                        {LS_SAMPLE_CLAIMS.map(cl=>(
-                          <tr key={cl.claimNum}>
-                            <td className="mono" style={{fontWeight:700,fontSize:11}}>{cl.claimNum}</td>
-                            <td className="mono" style={{fontSize:10,color:"#8C8070"}}>{cl.certNum.slice(0,8)}…</td>
-                            <td style={{fontWeight:600,fontSize:11,color:"#111111"}}>{cl.load}</td>
-                            <td style={{fontSize:11,color:"#5A534A"}}>{cl.causeOfLoss.replace(/_/g," ")}</td>
-                            <td className="mono" style={{fontWeight:700,color:"#9B3A1E"}}>${cl.lostValue.toLocaleString()}</td>
-                            <td style={{fontSize:11,color:"#8C8070"}}>{cl.filed}</td>
-                            <td><LoadsureStatusBadge status={cl.status}/></td>
-                            <td><button className="btn btn-ghost btn-xs" style={{fontSize:10}}>View →</button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>}
-              <button className="btn btn-outline btn-sm" style={{marginTop:10}}>+ File New Claim</button>
-            </div>
-          )}
-
+          {/* Settings */}
           {activeTab==="settings" && (
             <div>
               <div className="card">
                 <div className="card-title" style={{marginBottom:16}}>Integration Settings</div>
                 {[
-                  {label:"Auto-quote on load post", desc:"Automatically request an insurance quote when a spot load is posted.", enabled:true},
+                  {label:"Auto-quote on load post", desc:"Automatically request a quote when a spot load is posted.", enabled:true},
                   {label:"Require coverage before award", desc:"Block load award until an active certificate is in place.", enabled:false},
                   {label:"Email certificate to carrier", desc:"Send a copy of each certificate to the awarded carrier.", enabled:true},
                   {label:"Notify on claim status change", desc:"Send email alerts when a claim status changes.", enabled:true},
                 ].map((s,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:"1px solid #D4C9B8"}}>
+                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 0",borderBottom:`1px solid ${C.sand}`}}>
                     <div>
-                      <div style={{fontWeight:700,fontSize:13,color:"#111111"}}>{s.label}</div>
-                      <div style={{fontSize:11,color:"#8C8070",marginTop:2}}>{s.desc}</div>
+                      <div style={{fontWeight:700,fontSize:13,color:C.black}}>{s.label}</div>
+                      <div style={{fontSize:11,color:C.stone,marginTop:2}}>{s.desc}</div>
                     </div>
                     <label className="toggle">
                       <input type="checkbox" defaultChecked={s.enabled} readOnly/>
@@ -3718,36 +4032,14 @@ function RiskLoadsurePage({ setPage }) {
                   </div>
                 ))}
               </div>
-              <div className="card">
-                <div className="card-title" style={{marginBottom:12}}>Default Coverage Preferences</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div className="fg"><label>Default Commodity</label>
-                    <select defaultValue="Beverages">
-                      {["Beverages","Food & Grocery","Industrial Machinery","Building Materials","Clothing & Textiles"].map(c=><option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="fg"><label>Deductible</label>
-                    <select defaultValue="500">
-                      <option value="500">$500 (Standard)</option>
-                      <option value="1000">$1,000</option>
-                      <option value="2500">$2,500</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="alert info" style={{marginTop:8,fontSize:11}}>
-                  These defaults pre-fill the quote form but can be overridden per load. Coverage limit always matches the declared shipment value.
-                </div>
-              </div>
             </div>
           )}
         </>
       )}
-
-      {quoteModal && <LoadsureQuoteModal load={null} onClose={()=>setQuoteModal(false)}/>}
+      {quoteModal && <LoadsureQuoteModal load={null} onClose={()=>{setQuoteModal(false);loadData();}}/>}
     </div>
   );
 }
-
 // ─── END RISK MANAGEMENT ──────────────────────────────────────────────────────
 
 // ─── Organization Team Members Page ──────────────────────────────────────────
