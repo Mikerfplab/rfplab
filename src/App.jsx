@@ -984,6 +984,17 @@ function WStep1({ data, set }) {
 
 // ── Wiz Step 2 ────────────────────────────────────────────────────────────────
 function WStep2({ data, set }) {
+  const fscRef = useRef(null);
+  const handleFscFile = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      set("fscUploaded", true);
+      set("fscUploaded_name", file.name);
+      set("fscUploaded_size", file.size);
+    }
+    e.target.value = "";
+  };
+
   return (
     <div>
       <div className="page-title">Rate Structure</div>
@@ -1000,29 +1011,39 @@ function WStep2({ data, set }) {
           </div>
         ))}
       </div>
+
       {(data.rateFormat==="flat_linehaul"||data.rateFormat==="rpm_no_fuel") && (
         <div className="card">
           <div className="card-title">⛽ Fuel Surcharge Table</div>
-          <div className="wiz-alr info">Since carriers exclude fuel, upload your FSC schedule so total cost can be calculated automatically.</div>
+          <div className="wiz-alr info">Upload your FSC schedule — carriers will use this table to calculate total cost. Shared in the bid portal.</div>
+          <input type="file" ref={fscRef} accept=".xlsx,.csv,.xls,.pdf" style={{display:"none"}} onChange={handleFscFile}/>
           {data.fscUploaded
-            ? <div className="upload-ok">✓ FSC Table uploaded — 52 DOE diesel breakpoints detected</div>
-            : <div className="upload-z" onClick={()=>set("fscUploaded",true)}><div style={{fontSize:24,marginBottom:6}}>⛽</div><div style={{fontSize:13,color:C.gray}}><strong style={{color:C.steel}}>Click to upload</strong> your FSC table</div><div style={{fontSize:11,color:C.gray,marginTop:3}}>.xlsx or .csv · DOE diesel index format</div></div>}
+            ? <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:C.greenlt,border:`1px solid ${C.green}`,borderRadius:7,marginBottom:10}}>
+                <span style={{fontSize:18}}>✅</span>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:12,color:C.green}}>FSC table uploaded</div>
+                  <div style={{fontSize:11,color:C.stone}}>{data.fscUploaded_name}</div>
+                </div>
+                <button className="btn btn-ghost btn-xs" style={{color:C.stone}} onClick={()=>fscRef.current?.click()}>Replace</button>
+              </div>
+            : <div className="upload-z" onClick={()=>fscRef.current?.click()}>
+                <div style={{fontSize:28,marginBottom:6}}>⛽</div>
+                <div style={{fontSize:13,color:C.ash}}><strong style={{color:C.black}}>Click to upload</strong> your FSC table</div>
+                <div style={{fontSize:11,color:C.stone,marginTop:3}}>.xlsx, .csv, or .pdf · DOE diesel index format</div>
+              </div>}
           <div style={{marginTop:10}}>
             <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Show FSC table to carriers</div><div style={{fontSize:11,color:C.gray}}>Carriers can review the schedule before submitting</div></div><WTog checked={data.fscVisible} onChange={v=>set("fscVisible",v)}/></div>
             <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Auto-calculate all-in estimate in results</div><div style={{fontSize:11,color:C.gray}}>RFPlab computes total cost using current DOE diesel price</div></div><WTog checked={data.calcAllin} onChange={v=>set("calcAllin",v)}/></div>
           </div>
         </div>
       )}
+
       <div className="card">
         <div className="card-title">📐 Rate Rules</div>
         <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>One round only — best foot forward</div><div style={{fontSize:11,color:C.gray}}>No rebidding after submission</div></div><WTog checked={data.oneRound} onChange={v=>set("oneRound",v)}/></div>
         <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow volume-based creative pricing</div><div style={{fontSize:11,color:C.gray}}>Carriers can offer conditional rate reductions by volume threshold</div></div><WTog checked={data.allowCreative} onChange={v=>set("allowCreative",v)}/></div>
         <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow IMDL alternate lane bids</div><div style={{fontSize:11,color:C.gray}}>Carriers can submit separate IMDL alternatives for eligible lanes</div></div><WTog checked={data.allowImdl} onChange={v=>set("allowImdl",v)}/></div>
         <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Rates must be honored for full term</div><div style={{fontSize:11,color:C.gray}}>Deviations result in removal from spot market access</div></div><WTog checked={data.rateLock} onChange={v=>set("rateLock",v)}/></div>
-        <div className="wiz-row2" style={{marginTop:12}}>
-          <div className="wiz-fg"><label>Load Acceptance Required</label><select value={data.acceptancePct} onChange={e=>set("acceptancePct",e.target.value)}>{["90%","94%","95%","96%","97%","98%","99%","100%"].map(p=><option key={p}>{p}</option>)}</select></div>
-          <div className="wiz-fg"><label>On-Time Delivery Required</label><select value={data.otdPct} onChange={e=>set("otdPct",e.target.value)}>{["88%","90%","92%","94%","95%","96%","97%","98%"].map(p=><option key={p}>{p}</option>)}</select></div>
-        </div>
       </div>
     </div>
   );
@@ -1666,7 +1687,7 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
   const [lastSaved, setLastSaved] = useState(draftData?.savedAt || null);
 
   const [basics,  setBasicsRaw]  = useState(draftData?.basics  || {name:"",shipper:initialShipper||"",modes:[],geos:["US Domestic"],term:"",startDate:"",endDate:"",maxWeight:"44,500",loadType:"Full Truckload (FTL)",geo:"US Domestic",tempReqs:[],sendNow:true,scheduled:false});
-  const [rates,   setRatesRaw]   = useState(draftData?.rates   || {rateFormat:"flat_linehaul",fscUploaded:false,fscVisible:true,calcAllin:true,oneRound:true,allowCreative:true,allowImdl:true,rateLock:true,acceptancePct:"98%",otdPct:"94%"});
+  const [rates,   setRatesRaw]   = useState(draftData?.rates   || {rateFormat:"flat_linehaul",fscUploaded:false,fscVisible:true,calcAllin:true,oneRound:true,allowCreative:true,allowImdl:true,rateLock:true});
   const [award,   setAwardRaw]   = useState(draftData?.award   || {awardModel:"primary_backup",maxCarriers:"3",splitPct:60,assetPct:60,feedbackEnabled:true,feedbackType:"bracket"});
   const [lanes,   setLanesRaw]   = useState(draftData?.lanes   || {laneMethod:"",laneFileUploaded:false,rawDataUploaded:false,termSheetUploaded:false,accessorialUploaded:false,loadingUploaded:false,deliveryUploaded:false,deductionsUploaded:false,proceduresUploaded:false,fscUploaded:false});
   const [laneReq, setLaneReqRaw] = useState(draftData?.laneReq || {sopNotes:"",privateNotes:"",allowCarrierNotes:true});
