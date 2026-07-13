@@ -35,16 +35,7 @@ export default function AppRoot() {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0D1F3C",flexDirection:"column",gap:16}}>
-      <svg width={114} height={57} viewBox="0 0 252 130" xmlns="http://www.w3.org/2000/svg">
-        <rect x={0} y={0} width={210} height={130} fill="white"/>
-        <text x={105} y={94} textAnchor="middle"
-          fontFamily="'Arial Black','Impact',Arial,sans-serif" fontWeight="900"
-          fontSize="72" letterSpacing="14" fill="#111111">R F P</text>
-        <text x={231} y={65} textAnchor="middle" dominantBaseline="central"
-          fontFamily="'Arial Black','Impact',Arial,sans-serif" fontWeight="900"
-          fontSize="26" letterSpacing="5" fill="white"
-          transform="rotate(90,231,65)">LAB</text>
-      </svg>
+      <div style={{fontSize:28,fontWeight:900,color:"white",letterSpacing:4,fontFamily:"'Arial Black',Arial,sans-serif"}}>RFP <span style={{fontSize:14,verticalAlign:"super",letterSpacing:2}}>LAB</span></div>
       <div style={{color:"rgba(255,255,255,.5)",fontSize:12,fontFamily:"'Inter',sans-serif"}}>Loading…</div>
     </div>
   )
