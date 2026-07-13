@@ -521,17 +521,31 @@ const SEED_LOG = [
 ];
 
 // ─── PAGE: Carrier Event / Bid Landing Page ───────────────────────────────────
-const BID_DOCS = [
-  {name:"Lane File",          icon:"📊", desc:"Master template — enter your rates here", key:"lane_file",    ext:"XLSX"},
-  {name:"FSC Table",          icon:"⛽", desc:"Current fuel surcharge schedule",          key:"fsc_table",    ext:"XLSX"},
-  {name:"FSC Program",        icon:"📄", desc:"Fuel surcharge program details",           key:"fsc_program",  ext:"DOCX"},
-  {name:"4-Month Term Sheet", icon:"📝", desc:"Must be signed and returned with bid",     key:"term_sheet",   ext:"PDF"},
-  {name:"Accessorial Schedule",icon:"💰",desc:"All accessorial charges and rules",        key:"accessorial",  ext:"PDF"},
-  {name:"Loading Locations",  icon:"📍", desc:"Warehouse contacts & addresses",           key:"loading",      ext:"XLSX"},
-  {name:"Delivery Instructions",icon:"🚚",desc:"Customer delivery requirements",          key:"delivery",     ext:"XLSX"},
-  {name:"Deductions Guide",   icon:"⚠️", desc:"Deduction policies by customer",           key:"deductions",   ext:"DOCX"},
-  {name:"Processes & Procedures",icon:"📋",desc:"Spindrift logistics P&P — required reading",key:"procedures",ext:"PDF"},
+// BID_DOCS is now a function that takes the bidSettings/lanes state
+// to determine which docs are available and their download URLs
+const BID_DOC_DEFS = [
+  {name:"Lane File",             icon:"📊", desc:"Master template — enter your rates here",  stateKey:"laneFileUploaded",     ext:"XLSX", required:true},
+  {name:"FSC Table",             icon:"⛽", desc:"Current fuel surcharge schedule",           stateKey:"fscUploaded",          ext:"XLSX", required:false},
+  {name:"Term Sheet",            icon:"📝", desc:"Must be signed and returned with bid",      stateKey:"termSheetUploaded",    ext:"PDF",  required:true},
+  {name:"Accessorial Schedule",  icon:"💰", desc:"All accessorial charges and rules",         stateKey:"accessorialUploaded",  ext:"PDF",  required:false},
+  {name:"Loading Locations",     icon:"📍", desc:"Warehouse contacts & addresses",            stateKey:"loadingUploaded",      ext:"XLSX", required:false},
+  {name:"Delivery Instructions", icon:"🚚", desc:"Customer delivery requirements",            stateKey:"deliveryUploaded",     ext:"XLSX", required:false},
+  {name:"Deductions Guide",      icon:"⚠️",  desc:"Deduction policies by customer",            stateKey:"deductionsUploaded",   ext:"DOCX", required:false},
+  {name:"Processes & Procedures",icon:"📋", desc:"Shipper logistics P&P — required reading",  stateKey:"proceduresUploaded",   ext:"PDF",  required:false},
 ];
+
+// Build the real download URL from Supabase storage
+// Files are stored under: rfp-docs/{rfpId}/{key}_{originalFilename}
+// For now we use a signed URL approach — in production this calls supabase.storage.from('rfp-docs').createSignedUrl()
+function getDocUrl(rfpId, stateKey, filename) {
+  if (!rfpId || !filename) return null;
+  // Supabase public storage URL pattern
+  const SUPABASE_URL = "https://eyybzgkayabxtsdajgez.supabase.co";
+  return `${SUPABASE_URL}/storage/v1/object/public/rfp-docs/${rfpId}/${stateKey}_${encodeURIComponent(filename)}`;
+}
+
+// Legacy constant for any code still referencing BID_DOCS
+const BID_DOCS = BID_DOC_DEFS;
 
 function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
   const [intent, setIntent] = useState(null); // null | "yes" | "no" | "maybe"
@@ -549,28 +563,86 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
   };
 
   const handleDownload = (doc) => {
-    if (!downloadedDocs.includes(doc.key)) {
-      setDownloadedDocs(d=>[...d,doc.key]);
+    // Build URL from bidSettings — shipper uploaded these in the wizard
+    const s = bidSettings || {};
+    const rfpId = s.rfpId || s.id || null;
+    const filename = s[doc.stateKey + "_name"] || null;
+    const url = getDocUrl(rfpId, doc.stateKey, filename);
+    const isAvailable = !!(s[doc.stateKey] && filename);
+
+    if (!isAvailable) return; // doc wasn't uploaded — button is disabled
+
+    // Trigger real download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || `${doc.name}.${doc.ext.toLowerCase()}`;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    if (!downloadedDocs.includes(doc.stateKey)) {
+      setDownloadedDocs(d => [...d, doc.stateKey]);
       addLog({ carrier:carrierName, event:"file_downloaded", detail:`${doc.name} downloaded`, actor:"carrier" });
     }
   };
 
   const intentStatus = myLog.find(e=>["intent_yes","intent_no","intent_maybe"].includes(e.event));
 
+  // Access control: check if carrier's email is on the invite list
+  // If bidSettings has an inviteList, gate access
+  const carrierEmail = typeof carrierName === "string" && carrierName.includes("@") ? carrierName : null;
+  const inviteList = bidSettings?.inviteList || []; // array of invited emails
+  const shipperDomain = bidSettings?.shipperDomain || null;
+
+  // Access check: 1) invited directly, 2) same domain as an existing invitee, 3) no list set (demo mode)
+  const hasAccess = inviteList.length === 0 || // no restriction in demo mode
+    (carrierEmail && inviteList.some(e => e.toLowerCase() === carrierEmail.toLowerCase())) ||
+    (carrierEmail && inviteList.some(e => e.split("@")[1]?.toLowerCase() === carrierEmail.split("@")[1]?.toLowerCase()));
+
+  if (!hasAccess && inviteList.length > 0) {
+    return (
+      <div style={{maxWidth:520,margin:"60px auto",textAlign:"center",padding:"0 32px"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🔒</div>
+        <div style={{fontWeight:800,fontSize:20,color:C.black,marginBottom:8}}>Access Restricted</div>
+        <div style={{fontSize:13,color:C.stone,lineHeight:1.7,marginBottom:24}}>
+          This RFP is invite-only. Your email address was not found on the invited carrier list for this bid.
+        </div>
+        <div style={{background:C.parchment,borderRadius:8,padding:"14px 18px",fontSize:12,color:C.ash,marginBottom:20,textAlign:"left"}}>
+          <strong>Are you part of an invited carrier?</strong><br/>
+          If a colleague at your company was invited, they can share access with you. Contact them to add your email, or reach out to <a href="mailto:Mike@rfplab.com" style={{color:C.green}}>Mike@rfplab.com</a> for assistance.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{maxWidth:800}}>
-      {/* Header */}
+      {/* Header — uses shipper logo if uploaded, else shipper initials */}
       <div style={{display:"flex",alignItems:"flex-start",gap:16,marginBottom:24}}>
-        <div style={{width:56,height:56,background:C.white,border:`1px solid ${C.grayli}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>🌊</div>
+        <div style={{width:64,height:64,background:C.parchment,border:`1px solid ${C.sand}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+          {bidSettings?.shipperLogoUrl
+            ? <img src={bidSettings.shipperLogoUrl} alt={bidSettings?.shipper||"Shipper"} style={{maxWidth:60,maxHeight:60,objectFit:"contain"}}/>
+            : <span style={{fontSize:22,fontWeight:900,color:C.black,letterSpacing:-1}}>
+                {(bidSettings?.shipper||"?").split(" ").map(w=>w[0]).slice(0,2).join("")}
+              </span>}
+        </div>
         <div>
-          <div style={{fontSize:11,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",color:C.steel,marginBottom:4}}>Invitation to Bid</div>
-          <div className="page-title">Spindrift Beverage TL RFP</div>
-          <div style={{fontSize:15,fontWeight:500,color:C.gray,marginTop:2}}>2026 May – August (4 Month Contract)</div>
+          <div style={{fontSize:10,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",color:C.green,marginBottom:4}}>Invitation to Bid</div>
+          <div className="page-title">{bidSettings?.name||"RFP Invitation"}</div>
+          <div style={{fontSize:13,fontWeight:500,color:C.stone,marginTop:2}}>
+            {bidSettings?.shipper||"Shipper"} · {(bidSettings?.modes||[]).join(", ")||"Truckload"}
+            {bidSettings?.startDate && bidSettings?.endDate && ` · ${fmtDateShort(bidSettings.startDate)} – ${fmtDateShort(bidSettings.endDate)}`}
+          </div>
         </div>
         <div style={{marginLeft:"auto",textAlign:"right",flexShrink:0}}>
-          <div style={{fontSize:11,color:C.gray,fontWeight:600}}>RFP ID</div>
-          <div className="mono" style={{fontSize:13,fontWeight:700,color:C.navy}}>RFP-2026-001</div>
-          <div style={{marginTop:6,padding:"4px 10px",background:C.amberlt,color:C.amber,borderRadius:20,fontSize:10,fontWeight:700}}>⏰ DEADLINE: Apr 3, 2026</div>
+          <div style={{fontSize:10,color:C.stone,fontWeight:600,marginBottom:2}}>RFP ID</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:12,fontWeight:700,color:C.black}}>{bidSettings?.id||"RFP-2026-001"}</div>
+          {bidSettings?.rateDeadline && (
+            <div style={{marginTop:8,padding:"4px 12px",background:C.goldlt,color:"#7A5A10",borderRadius:20,fontSize:10,fontWeight:700}}>
+              ⏰ DEADLINE: {fmtDateShort(bidSettings.rateDeadline)}
+            </div>
+          )}
         </div>
       </div>
 
@@ -670,22 +742,38 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
           <div className="card">
             <div className="card-title" style={{marginBottom:12}}>📁 Bid Documents</div>
             <div style={{fontSize:11,color:C.gray,marginBottom:12}}>Download all documents before submitting. The Lane File is where you enter your rates.</div>
-            {BID_DOCS.map(doc=>(
-              <div key={doc.key} onClick={()=>handleDownload(doc)}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:7,border:`1px solid ${downloadedDocs.includes(doc.key)?C.green:C.grayli}`,background:downloadedDocs.includes(doc.key)?C.greenlt:C.white,cursor:"pointer",marginBottom:7,transition:"all 0.15s"}}>
-                <span style={{fontSize:18,flexShrink:0}}>{doc.icon}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:600,color:C.text}}>{doc.name}</div>
-                  <div style={{fontSize:10,color:C.gray}}>{doc.desc}</div>
+            {BID_DOC_DEFS.map(doc=>{
+              const s = bidSettings || {};
+              const available = !!(s[doc.stateKey]);
+              const fname = s[doc.stateKey+"_name"] || "";
+              const downloaded = downloadedDocs.includes(doc.stateKey);
+              return (
+                <div key={doc.stateKey}
+                  onClick={()=>available && handleDownload(doc)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:7,
+                    border:`1px solid ${downloaded?C.green:available?C.sand:C.sand}`,
+                    background:downloaded?C.greenlt:available?"#FDFCF9":C.parchment,
+                    cursor:available?"pointer":"default",marginBottom:7,transition:"all 0.15s",
+                    opacity:available?1:0.5}}>
+                  <span style={{fontSize:18,flexShrink:0}}>{doc.icon}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:600,color:available?C.black:C.stone}}>
+                      {doc.name}
+                      {doc.required&&<span style={{color:C.rust,marginLeft:3}}>*</span>}
+                    </div>
+                    <div style={{fontSize:10,color:C.stone}}>{fname||doc.desc}</div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
+                    <span style={{fontSize:9,fontWeight:700,background:C.parchment,border:`1px solid ${C.sand}`,borderRadius:3,padding:"1px 5px",color:C.stone}}>{doc.ext}</span>
+                    {downloaded
+                      ? <span style={{fontSize:9,color:C.green,fontWeight:700}}>✓ Downloaded</span>
+                      : available
+                        ? <span style={{fontSize:9,color:C.green,fontWeight:700}}>⬇ Download</span>
+                        : <span style={{fontSize:9,color:C.stone}}>Not uploaded</span>}
+                  </div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
-                  <span style={{fontSize:9,fontWeight:700,background:C.offwhite,border:`1px solid ${C.grayli}`,borderRadius:3,padding:"1px 5px",color:C.gray}}>{doc.ext}</span>
-                  {downloadedDocs.includes(doc.key)
-                    ? <span style={{fontSize:9,color:C.green,fontWeight:700}}>✓ Downloaded</span>
-                    : <span style={{fontSize:9,color:C.steel}}>⬇ Download</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Quick stats */}
@@ -942,6 +1030,37 @@ function WStep1({ data, set }) {
         <div className="wiz-row2">
           <div className="wiz-fg"><label>RFP Name</label><input value={data.name} onChange={e=>set("name",e.target.value)} placeholder="e.g. Spindrift May–Aug 2026"/></div>
           <div className="wiz-fg"><label>Shipper / Company</label><input value={data.shipper} onChange={e=>set("shipper",e.target.value)} placeholder="e.g. Spindrift Beverages"/></div>
+        </div>
+        {/* Shipper logo upload */}
+        <div style={{marginTop:12}}>
+          <label style={{marginBottom:6}}>Company Logo <span style={{fontWeight:400,fontSize:10,color:C.stone}}>(shown on the carrier bid page — PNG, JPG, or SVG)</span></label>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {data.shipperLogoUrl
+              ? <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:C.greenlt,border:`1px solid ${C.green}`,borderRadius:7,flex:1}}>
+                  <img src={data.shipperLogoUrl} alt="logo" style={{height:36,maxWidth:120,objectFit:"contain"}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:700,color:C.green}}>Logo uploaded</div>
+                    <div style={{fontSize:10,color:C.stone}}>{data.shipperLogoName||""}</div>
+                  </div>
+                  <button className="btn btn-ghost btn-xs" style={{color:C.stone}} onClick={()=>{set("shipperLogoUrl",null);set("shipperLogoName","");}}>Remove</button>
+                </div>
+              : <div className="upload-z" style={{flex:1,padding:"14px 20px"}} onClick={()=>document.getElementById("logo-upload-input").click()}>
+                  <div style={{fontSize:13,color:C.ash}}><strong style={{color:C.black}}>Click to upload</strong> your company logo</div>
+                  <div style={{fontSize:11,color:C.stone,marginTop:2}}>PNG, JPG, SVG · Shown on carrier bid invitations</div>
+                </div>}
+            <input id="logo-upload-input" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" style={{display:"none"}}
+              onChange={(e)=>{
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  set("shipperLogoUrl", ev.target.result); // base64 data URL
+                  set("shipperLogoName", file.name);
+                };
+                reader.readAsDataURL(file);
+                e.target.value = "";
+              }}/>
+          </div>
         </div>
         <div className="wiz-row2">
           <div className="wiz-fg"><label>Mode(s) — select all that apply</label>
@@ -2757,7 +2876,7 @@ function BidPage({ bidSettings, carrierName, addLog }) {
         <div className="table-scroll">
           <table>
             <thead><tr>
-              <th>Lane</th><th>Type</th><th>Origin</th><th>Destination</th><th>Mode</th><th>Vol/Mo</th><th>Miles</th>
+              <th>Lane</th><th>Type</th><th>Origin</th><th>Destination</th><th>Mode</th><th>Vol</th><th>Miles</th>
               <th style={{width:120}}>My Rate ($)</th>
               {bidSettings.feedbackEnabled && <th>Feedback</th>}
             </tr></thead>
@@ -2770,8 +2889,13 @@ function BidPage({ bidSettings, carrierName, addLog }) {
                     <td><span className={`badge ${l.type.toLowerCase()}`}>{l.type}</span></td>
                     <td>{l.origCity}, {l.origSt}</td>
                     <td>{l.destCity}, {l.destSt}</td>
-                    <td style={{fontSize:11}}>{l.mode}</td>
-                    <td className="mono">{Math.round(l.vol)}</td>
+                    <td style={{fontSize:11}}>
+                      <div>{l.mode}</div>
+                      {(l.mode==="Reefer"||l.mode==="Frozen") && l.tempRange && (
+                        <div style={{fontSize:9,color:C.green,fontWeight:700,marginTop:1}}>🌡 {l.tempRange}</div>
+                      )}
+                    </td>
+                    <td className="mono">{Math.round(l.vol)}<div style={{fontSize:9,color:C.stone,fontWeight:400}}>{"{"}bidSettings?.volPeriod||"mo"{"}"}</div></td>
                     <td className="mono">{l.miles.toLocaleString()}</td>
                     <td>
                       <input className="rate-input" type="number" placeholder="—"
@@ -4605,6 +4729,287 @@ function CarrierBidList({ setPage, dbProfile, onSelectBid }) {
   );
 }
 
+// ─── Shipper / Admin RFP Detail — monitoring view ────────────────────────────
+function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
+  const [tab, setTab] = useState("overview");
+  const [addCarrierModal, setAddCarrierModal] = useState(false);
+  const [newCarrier, setNewCarrier] = useState({name:"",email:"",scac:"",contact:""});
+  const [awardModal, setAwardModal] = useState(null); // lane object
+  const [selectedAward, setSelectedAward] = useState({});
+
+  // Sample carrier submission data — in production comes from Supabase bids table
+  const carriers = rfp?.carrierInvites || [
+    {id:1,name:"ROAR Logistics",    scac:"ROAR",email:"rates@roar.com",   status:"submitted", lanesRated:62,lanesTotal:97,lastActivity:"2026-07-12",acknowledged:"yes"},
+    {id:2,name:"Elberta Carriers",  scac:"ELFI",email:"rates@elberta.com",status:"confirmed", lanesRated:0, lanesTotal:97,lastActivity:"2026-07-11",acknowledged:"yes"},
+    {id:3,name:"Market Express",    scac:"MKXD",email:"rfp@marketexp.com", status:"invited",   lanesRated:0, lanesTotal:97,lastActivity:null,          acknowledged:null},
+    {id:4,name:"C.H. Robinson",     scac:"RBTW",email:"rates@chr.com",    status:"submitted", lanesRated:71,lanesTotal:97,lastActivity:"2026-07-13",acknowledged:"yes"},
+    {id:5,name:"Echo Global",       scac:"ECHO",email:"bids@echo.com",    status:"declined",  lanesRated:0, lanesTotal:97,lastActivity:"2026-07-10",acknowledged:"no"},
+  ];
+
+  const sampleLanes = [
+    {id:"SD-0001",orig:"Beaumont, CA",dest:"Irwindale, CA",mode:"Reefer",vol:44,miles:65,
+      bids:[{carrier:"ROAR Logistics",rate:950},{carrier:"C.H. Robinson",rate:890}]},
+    {id:"SD-0002",orig:"Beaumont, CA",dest:"Mooresville, NC",mode:"Reefer",vol:29,miles:2373,
+      bids:[{carrier:"ROAR Logistics",rate:4200},{carrier:"C.H. Robinson",rate:3950}]},
+    {id:"SD-0005",orig:"Irwindale, CA",dest:"Phoenix, AZ",mode:"Dry Van",vol:39,miles:368,
+      bids:[{carrier:"ROAR Logistics",rate:850},{carrier:"C.H. Robinson",rate:820}]},
+    {id:"SD-0010",orig:"Irwindale, CA",dest:"Redlands, CA",mode:"Dry Van",vol:308,miles:52,
+      bids:[{carrier:"ROAR Logistics",rate:425},{carrier:"C.H. Robinson",rate:410}]},
+    {id:"SD-0022",orig:"Redlands, CA",dest:"Aurora, CO",mode:"Dry Van",vol:75,miles:1003,
+      bids:[{carrier:"C.H. Robinson",rate:1950}]},
+  ];
+
+  const statusMeta = {
+    submitted: {label:"Submitted",    bg:C.greenlt, color:C.green},
+    confirmed: {label:"Acknowledged", bg:"#E6F9EE", color:"#00A043"},
+    invited:   {label:"Invited",      bg:C.goldlt,  color:"#7A5A10"},
+    declined:  {label:"Declined",     bg:C.rustlt,  color:C.rust},
+  };
+
+  const submitted   = carriers.filter(c=>c.status==="submitted").length;
+  const acknowledged= carriers.filter(c=>c.acknowledged==="yes").length;
+  const declined    = carriers.filter(c=>c.status==="declined").length;
+  const totalLanesRated = carriers.reduce((s,c)=>s+c.lanesRated,0);
+
+  const handleAddCarrier = () => {
+    if (!newCarrier.name || !newCarrier.email) return;
+    // In production: insert into rfp_invites table + send email
+    setAddCarrierModal(false);
+    setNewCarrier({name:"",email:"",scac:"",contact:""});
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="section-header">
+        <div>
+          <button className="btn btn-ghost" style={{fontSize:11,marginBottom:6}} onClick={()=>setPage("rfps")}>← Back to My RFPs</button>
+          <div className="page-title">{rfp?.name||"RFP Detail"}</div>
+          <div className="page-sub">{rfp?.shipper_name||rfp?.shipper||"—"} · {(rfp?.modes||[]).join(", ")||"Truckload"} · Rate deadline: {fmtDateShort(rfp?.rate_deadline)}</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button className="btn btn-outline" onClick={()=>setAddCarrierModal(true)}>+ Add Carrier</button>
+          <span style={{background:C.greenlt,color:C.green,padding:"5px 12px",borderRadius:4,fontSize:11,fontWeight:800,display:"flex",alignItems:"center"}}>
+            ● ACTIVE
+          </span>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="stat-grid" style={{marginBottom:16}}>
+        <div className="stat-tile"><div className="stat-label">Carriers Invited</div><div className="stat-value">{carriers.length}</div><div className="stat-sub">{acknowledged} acknowledged</div></div>
+        <div className="stat-tile"><div className="stat-label">Rates Submitted</div><div className="stat-value" style={{color:C.green}}>{submitted}</div><div className="stat-sub">of {carriers.length} invited</div></div>
+        <div className="stat-tile"><div className="stat-label">Declined</div><div className="stat-value" style={{color:declined>0?C.rust:C.stone}}>{declined}</div></div>
+        <div className="stat-tile"><div className="stat-label">Lane Coverage</div><div className="stat-value">{sampleLanes.filter(l=>l.bids.length>0).length}</div><div className="stat-sub">of {sampleLanes.length} lanes have bids</div></div>
+      </div>
+
+      <div className="tab-bar">
+        {["overview","carriers","lanes","activity"].map(t=>(
+          <div key={t} className={`tab${tab===t?" active":""}`} onClick={()=>setTab(t)} style={{textTransform:"capitalize"}}>{t}</div>
+        ))}
+      </div>
+
+      {/* Overview */}
+      {tab==="overview" && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div className="card">
+            <div className="card-title" style={{marginBottom:12}}>📋 Bid Configuration</div>
+            {[
+              ["Rate Format",    rfp?.rate_format==="flat_linehaul"?"Flat Linehaul — no fuel":"All-In"],
+              ["Award Model",    rfp?.award_model||"Primary + Backup"],
+              ["Max / Lane",     rfp?.max_carriers_per_lane||3],
+              ["Rounds",         rfp?.two_rounds?"2 rounds":"1 round"],
+              ["Feedback",       rfp?.feedback_enabled?`Enabled — ${rfp.feedback_type}`:"Disabled"],
+              ["Rates Due",      fmtDateShort(rfp?.rate_deadline)],
+              ["Awards",         fmtDateShort(rfp?.award_date)],
+              ["Go Live",        fmtDateShort(rfp?.go_live_date)],
+            ].map(([k,v])=>(
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.sand}`,fontSize:12}}>
+                <span style={{color:C.stone}}>{k}</span><span style={{fontWeight:600,color:C.black}}>{v}</span>
+              </div>
+            ))}
+          </div>
+          <div className="card">
+            <div className="card-title" style={{marginBottom:12}}>📊 Submission Progress</div>
+            {carriers.map(c=>{
+              const sm = statusMeta[c.status]||statusMeta.invited;
+              const pct = c.lanesTotal>0?Math.round((c.lanesRated/c.lanesTotal)*100):0;
+              return (
+                <div key={c.id} style={{marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <span style={{fontWeight:600,fontSize:12,color:C.black}}>{c.name}</span>
+                    <span style={{background:sm.bg,color:sm.color,fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:2}}>{sm.label}</span>
+                  </div>
+                  <div style={{height:6,background:C.sand,borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:6,width:`${pct}%`,background:pct===100?C.green:pct>0?"#C9A84C":C.sand,borderRadius:3,transition:"width .4s"}}/>
+                  </div>
+                  <div style={{fontSize:10,color:C.stone,marginTop:2}}>{c.lanesRated} of {c.lanesTotal} lanes · {pct}%</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Carriers */}
+      {tab==="carriers" && (
+        <div>
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <table>
+              <thead><tr>
+                <th>Carrier</th><th>SCAC</th><th>Email</th><th>Acknowledged</th><th>Lanes Submitted</th><th>Last Activity</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody>
+                {carriers.map(c=>{
+                  const sm = statusMeta[c.status]||statusMeta.invited;
+                  return (
+                    <tr key={c.id}>
+                      <td style={{fontWeight:700,color:C.black}}>{c.name}</td>
+                      <td className="mono" style={{color:C.stone}}>{c.scac}</td>
+                      <td style={{fontSize:11,color:C.stone}}>{c.email}</td>
+                      <td>
+                        {c.acknowledged==="yes"
+                          ? <span style={{color:C.green,fontWeight:700,fontSize:11}}>✓ Yes</span>
+                          : c.acknowledged==="no"
+                            ? <span style={{color:C.rust,fontSize:11}}>✕ Declined</span>
+                            : <span style={{color:C.stone,fontSize:11}}>—</span>}
+                      </td>
+                      <td>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:80,height:5,background:C.sand,borderRadius:3}}>
+                            <div style={{height:5,width:`${c.lanesTotal>0?Math.round((c.lanesRated/c.lanesTotal)*100):0}%`,background:C.green,borderRadius:3}}/>
+                          </div>
+                          <span style={{fontSize:11,color:C.stone}}>{c.lanesRated}/{c.lanesTotal}</span>
+                        </div>
+                      </td>
+                      <td style={{fontSize:11,color:C.stone}}>{c.lastActivity?fmtDateShort(c.lastActivity):"—"}</td>
+                      <td><span style={{background:sm.bg,color:sm.color,fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:2,textTransform:"uppercase"}}>{sm.label}</span></td>
+                      <td>
+                        <div style={{display:"flex",gap:4}}>
+                          <button className="btn btn-ghost btn-xs" style={{fontSize:10}}>📧 Remind</button>
+                          <button className="btn btn-ghost btn-xs" style={{fontSize:10,color:C.rust}}>Remove</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <button className="btn btn-green btn-sm" style={{marginTop:10}} onClick={()=>setAddCarrierModal(true)}>+ Add Carrier to Bid</button>
+        </div>
+      )}
+
+      {/* Lanes — rate view with award capability */}
+      {tab==="lanes" && (
+        <div>
+          <div className="alert info" style={{marginBottom:12,fontSize:12}}>
+            You can award lanes before the bid closes. Awards are provisional until the bid deadline passes.
+          </div>
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            <table>
+              <thead><tr>
+                <th>Lane</th><th>Origin</th><th>Destination</th><th>Mode</th><th>Vol</th><th>Miles</th><th>Bids</th><th>Low Bid</th><th>Award</th>
+              </tr></thead>
+              <tbody>
+                {sampleLanes.map(lane=>{
+                  const sorted = [...lane.bids].sort((a,b)=>a.rate-b.rate);
+                  const low = sorted[0];
+                  const awarded = selectedAward[lane.id];
+                  return (
+                    <tr key={lane.id} style={{background:awarded?C.greenlt:"transparent"}}>
+                      <td className="mono" style={{fontSize:11,color:C.stone}}>{lane.id}</td>
+                      <td style={{fontSize:12}}>{lane.orig}</td>
+                      <td style={{fontSize:12}}>{lane.dest}</td>
+                      <td><span style={{fontSize:10,fontWeight:700,color:lane.mode==="Reefer"?C.green:C.stone}}>{lane.mode}</span></td>
+                      <td className="mono" style={{fontSize:11}}>{lane.vol}</td>
+                      <td className="mono" style={{fontSize:11}}>{lane.miles.toLocaleString()}</td>
+                      <td style={{fontSize:11,color:C.stone}}>{lane.bids.length} bid{lane.bids.length!==1?"s":""}</td>
+                      <td style={{fontWeight:700,color:C.green,fontFamily:"'DM Mono',monospace"}}>
+                        {low?`$${low.rate.toLocaleString()}`:"—"}
+                        {low&&<div style={{fontSize:9,color:C.stone,fontWeight:400}}>{low.carrier}</div>}
+                      </td>
+                      <td>
+                        {awarded
+                          ? <div style={{display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:10,fontWeight:700,color:C.green}}>✓ {awarded}</span>
+                              <button className="btn btn-ghost btn-xs" style={{fontSize:9}} onClick={()=>setSelectedAward(a=>({...a,[lane.id]:null}))}>Change</button>
+                            </div>
+                          : <select style={{fontSize:11,padding:"3px 6px"}} value="" onChange={e=>{if(e.target.value)setSelectedAward(a=>({...a,[lane.id]:e.target.value}));}}>
+                              <option value="">— Select carrier —</option>
+                              {sorted.map(b=><option key={b.carrier} value={b.carrier}>{b.carrier} (${b.rate.toLocaleString()})</option>)}
+                            </select>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {Object.values(selectedAward).some(Boolean) && (
+            <div style={{marginTop:12,display:"flex",gap:8,alignItems:"center"}}>
+              <span style={{fontSize:12,color:C.stone}}>{Object.values(selectedAward).filter(Boolean).length} lane{Object.values(selectedAward).filter(Boolean).length!==1?"s":""} provisionally awarded</span>
+              <button className="btn btn-green">✓ Confirm All Awards & Notify Carriers</button>
+              <button className="btn btn-outline">Export Award Summary</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Activity */}
+      {tab==="activity" && (
+        <div className="card">
+          <div className="card-title" style={{marginBottom:14}}>📜 Bid Activity Log</div>
+          {[
+            {ts:"2026-07-13 11:18",carrier:"ROAR Logistics",  event:"rates_submitted", detail:"62 lane rates submitted"},
+            {ts:"2026-07-13 09:44",carrier:"C.H. Robinson",   event:"rates_submitted", detail:"71 lane rates submitted"},
+            {ts:"2026-07-12 16:30",carrier:"ROAR Logistics",  event:"file_downloaded", detail:"Lane File downloaded"},
+            {ts:"2026-07-11 14:22",carrier:"Elberta Carriers", event:"intent_yes",     detail:"Confirmed intent to participate"},
+            {ts:"2026-07-10 10:05",carrier:"Echo Global",      event:"intent_no",      detail:"Declining — will not bid"},
+            {ts:"2026-07-09 08:00",carrier:"All",              event:"invite_sent",    detail:"Invitations sent to 5 carriers"},
+          ].map((e,i)=>{
+            const icons = {rates_submitted:"📊",file_downloaded:"⬇",intent_yes:"✅",intent_no:"❌",invite_sent:"📧"};
+            return (
+              <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.sand}`}}>
+                <span style={{fontSize:18,flexShrink:0}}>{icons[e.event]||"•"}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.black}}>{e.carrier} — {e.detail}</div>
+                  <div style={{fontSize:10,color:C.stone,marginTop:2}}>{e.ts}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Carrier Modal */}
+      {addCarrierModal && (
+        <div className="modal-overlay" onClick={()=>setAddCarrierModal(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Add Carrier to Bid</div>
+              <button className="btn btn-ghost" onClick={()=>setAddCarrierModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="alert info" style={{marginBottom:14}}>The carrier will receive an invite email with their secure bid link immediately.</div>
+              <div className="form-group"><label>Company Name *</label><input value={newCarrier.name} onChange={e=>setNewCarrier(c=>({...c,name:e.target.value}))} placeholder="Carrier / Broker name"/></div>
+              <div className="form-group"><label>Contact Email *</label><input type="email" value={newCarrier.email} onChange={e=>setNewCarrier(c=>({...c,email:e.target.value}))} placeholder="rates@carrier.com"/></div>
+              <div className="form-group"><label>SCAC (optional)</label><input value={newCarrier.scac} onChange={e=>setNewCarrier(c=>({...c,scac:e.target.value}))} placeholder="e.g. ROAR"/></div>
+              <div className="form-group"><label>Contact Name (optional)</label><input value={newCarrier.contact} onChange={e=>setNewCarrier(c=>({...c,contact:e.target.value}))} placeholder="First Last"/></div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={()=>setAddCarrierModal(false)}>Cancel</button>
+              <button className="btn btn-green" onClick={handleAddCarrier} disabled={!newCarrier.name||!newCarrier.email}>📧 Add & Send Invite</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── END SHIPPER RFP DETAIL ───────────────────────────────────────────────────
+
 function PlaceholderPage({ title, sub }) {
   return (
     <div className="card" style={{textAlign:"center",padding:60}}>
@@ -4617,7 +5022,7 @@ function PlaceholderPage({ title, sub }) {
 
 // ─── Simple dashboards ────────────────────────────────────────────────────────
 // ─── My RFPs Page — with drafts, progress, timestamps ────────────────────────
-function MyRFPsPage({ setPage, role, dbProfile }) {
+function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
   const [drafts,  setDrafts]  = useState([]);
   const [rfps,    setRfps]    = useState([]);
   const [loading, setLoading] = useState(true);
@@ -4793,7 +5198,7 @@ function MyRFPsPage({ setPage, role, dbProfile }) {
                   </div>
                 );
                 return filtered.map(rfp => (
-                  <div key={rfp.id} className="card" style={{marginBottom:10,cursor:"pointer"}} onClick={()=>setPage("results")}>
+                  <div key={rfp.id} className="card" style={{marginBottom:10,cursor:"pointer"}} onClick={()=>onSelectRFP?onSelectRFP(rfp):setPage("results")}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                       <div>
                         <div style={{fontWeight:800,fontSize:14,color:C.black}}>{rfp.name}</div>
@@ -5226,6 +5631,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
   const [role, setRole] = useState(initialRole || dbProfile?.role || "shipper");
   const [page, setPage] = useState(role === "carrier" ? "event" : "dashboard");
   const [selectedBid, setSelectedBid] = useState(null);
+  const [selectedRFP, setSelectedRFP] = useState(null);
     const [bidSettings, setBidSettings] = useState({...DEFAULT_BID_SETTINGS});
 
   // Real users get EMPTY state — data comes from Supabase
@@ -5283,7 +5689,8 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="dashboard") return <AdminDashboard setPage={setPage}/>;
       if (page==="users")     return <AdminUserManagement/>;
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="admin" dbProfile={dbProfile}/>;
-      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile}/>;
+      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile} onSelectRFP={rfp=>{setSelectedRFP(rfp);setPage("rfp_detail");}}/>;
+      if (page==="rfp_detail") return <ShipperRFPDetail rfp={selectedRFP} setPage={setPage} dbProfile={dbProfile}/>;
       if (page==="risk_carriers")  return <RiskCarriersPage/>;
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
@@ -5295,7 +5702,8 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="invite")    return <InvitePage dbProfile={dbProfile}/>;
       if (page==="results" || page==="awards") return <ResultsPage bidSettings={bidSettings} dbProfile={dbProfile}/>;
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="shipper" dbProfile={dbProfile}/>;
-      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile}/>;
+      if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile} onSelectRFP={rfp=>{setSelectedRFP(rfp);setPage("rfp_detail");}}/>;
+      if (page==="rfp_detail") return <ShipperRFPDetail rfp={selectedRFP} setPage={setPage} dbProfile={dbProfile}/>;
       if (page==="risk_carriers")  return <RiskCarriersPage/>;
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
