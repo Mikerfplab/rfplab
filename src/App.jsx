@@ -1656,21 +1656,26 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
     if (dbProfile) {
       import('./supabase.js').then(async ({ getRFPs, supabase: sb }) => {
         try {
+          console.log('[RFPs] Loading for user:', dbProfile.id);
           // Primary: query by shipper_id
           let data = await getRFPs(dbProfile.id);
+          console.log('[RFPs] By shipper_id:', data?.length, 'rows');
           // Fallback: query by shipper_name if shipper_id wasn't saved
           if (!data || data.length === 0) {
             const n = dbProfile.company || dbProfile.full_name || '';
+            console.log('[RFPs] Fallback by name:', n);
             if (n && sb) {
               const res = await sb.from('rfps').select('*')
                 .ilike('shipper_name', `%${n}%`)
                 .order('created_at', { ascending: false });
+              console.log('[RFPs] By name:', res.data?.length, 'rows', res.error);
               data = res.data || [];
             }
           }
+          console.log('[RFPs] Final:', data?.length, 'rows');
           setRfps(data || []);
         } catch(e) {
-          console.error('Failed to load RFPs:', e);
+          console.error('[RFPs] Failed:', e);
           setRfps([]);
         }
         setLoading(false);
