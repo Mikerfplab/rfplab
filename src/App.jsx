@@ -137,9 +137,9 @@ const css = `
   .badge.awarded{background:${C.olivelt};color:${C.olive};}
   .badge.pending{background:${C.goldlt};color:#7A5A10;}
   .badge.asset{background:${C.parchment};color:${C.ash};font-size:9px;border:1px solid ${C.sand};}
-  .badge.broker{background:${C.charcoal};color:${C.cream};font-size:9px;}
+  .badge.broker{background:${C.charcoal};color:${C.warmWhite};font-size:9px;}
   .badge-asset{background:${C.parchment};color:${C.ash};border:1px solid ${C.sand};}
-  .badge-broker{background:${C.charcoal};color:${C.cream};}
+  .badge-broker{background:${C.charcoal};color:${C.warmWhite};}
   .badge-green{background:${C.olivelt};color:${C.olive};}
   .badge-gray{background:${C.parchment};color:${C.stone};border:1px solid ${C.sand};}
 
@@ -233,7 +233,7 @@ const css = `
   .scenario-title{font-size:12px;font-weight:800;color:${C.black};letter-spacing:.3px;}
   .scenario-desc{font-size:11px;color:${C.stone};margin-top:2px;}
   .scenario-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:2px;font-size:10px;font-weight:800;cursor:pointer;border:1px solid;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;}
-  .scenario-pill.active-s{background:${C.black};color:${C.cream};border-color:${C.black};}
+  .scenario-pill.active-s{background:${C.black};color:${C.warmWhite};border-color:${C.black};}
   .scenario-pill.inactive-s{background:transparent;color:${C.ash};border-color:${C.sand};}
   .scenario-pill:hover{opacity:.8;}
 
@@ -261,7 +261,7 @@ const css = `
   /* ── Chips ── */
   .invite-chip{display:inline-flex;align-items:center;gap:6px;background:${C.parchment};border:1px solid ${C.sand};border-radius:2px;padding:4px 10px;font-size:12px;margin:3px;}
   .chip2{display:inline-flex;align-items:center;gap:5px;background:${C.warmWhite};border:1px solid ${C.sand};border-radius:20px;padding:4px 11px;font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;}
-  .chip2.sel{background:${C.black};border-color:${C.black};color:${C.cream};font-weight:700;}
+  .chip2.sel{background:${C.black};border-color:${C.black};color:${C.warmWhite};font-weight:700;}
   .chip-grp{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 
   /* ── Misc ── */
@@ -308,7 +308,7 @@ const css = `
   .wiz-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
   .wiz-fg{margin-bottom:12px;}
   .wiz-badge-asset{background:${C.parchment};color:${C.ash};border:1px solid ${C.sand};}
-  .wiz-badge-broker{background:${C.charcoal};color:${C.cream};}
+  .wiz-badge-broker{background:${C.charcoal};color:${C.warmWhite};}
   .wiz-badge-green{background:${C.olivelt};color:${C.olive};}
   .wiz-badge-gray{background:${C.parchment};color:${C.stone};border:1px solid ${C.sand};}
   .fld-row{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid ${C.sand};border-radius:6px;margin-bottom:6px;background:${C.warmWhite};}
@@ -327,7 +327,7 @@ const css = `
   .live-dot{width:7px;height:7px;border-radius:50%;background:${C.olive};display:inline-block;animation:pulse-dot 1.5s infinite;}
   @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.3;}}
   .countdown-pill{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${C.rust};background:${C.rustlt};padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;border:1px solid #D4A090;}
-  .countdown-pill.urgent{color:${C.crimson};background:${C.crimsonlt};border-color:#D4A0A0;}
+  .countdown-pill.urgent{color:${C.rust};background:${C.rustlt};border-color:#FFCDD2;}
   .countdown-pill.closed{color:${C.stone};background:${C.parchment};border-color:${C.sand};}
   .load-card-spot{background:${C.warmWhite};border:1px solid ${C.sand};border-radius:8px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
   .load-card-spot:hover{border-color:${C.gold};box-shadow:0 2px 8px rgba(201,168,76,.1);}
@@ -404,7 +404,7 @@ function carrierFeedback(lane, carrierName, settings) {
   const myRank = lane.bids.findIndex(b => b.carrier === carrierName) + 1;
   const pct = pctFromLow(myBid.rate, low);
   const ft = settings.feedbackType;
-  if (ft === "rank") return { label: `Your rank: #${myRank} of ${lane.bids.length}`, color: myRank === 1 ? C.green : C.gray };
+  if (ft === "rank") return { label: `Your rank: #${myRank} of ${lane.bids.length}`, color: myRank === 1 ? C.green : C.stone };
   if (ft === "bracket") return { label: myRank === 1 ? "You are low bid ✓" : `${toBracket(pct)} above low`, color: myRank === 1 ? C.green : C.amber };
   if (ft === "percent") return { label: myRank === 1 ? "You are low bid ✓" : `+${pct}% above low`, color: myRank === 1 ? C.green : C.amber };
   if (ft === "dollar") return { label: myRank === 1 ? "You are low bid ✓" : `$${(myBid.rate - low).toLocaleString()} above low`, color: myRank === 1 ? C.green : C.amber };
@@ -443,14 +443,14 @@ function formatTs(ts) {
 
 const EVENT_TYPE_META = {
   invite_sent:      {icon:"📩", label:"Invite Sent",         color:"#1D4ED8"},
-  invite_viewed:    {icon:"👁️", label:"Bid Page Viewed",     color:C.gray},
+  invite_viewed:    {icon:"👁️", label:"Bid Page Viewed",     color:C.stone},
   intent_yes:       {icon:"✅", label:"Intent: Will Bid",    color:C.green},
-  intent_no:        {icon:"❌", label:"Intent: Declining",   color:C.red},
+  intent_no:        {icon:"❌", label:"Intent: Declining",   color:C.rust},
   intent_maybe:     {icon:"🤔", label:"Intent: Undecided",  color:C.amber},
-  file_downloaded:  {icon:"⬇️", label:"File Downloaded",    color:C.steel},
+  file_downloaded:  {icon:"⬇️", label:"File Downloaded",    color:C.ash},
   rates_submitted:  {icon:"💲", label:"Rates Submitted",    color:C.green},
   rates_updated:    {icon:"✏️", label:"Rates Updated",      color:C.amber},
-  award_viewed:     {icon:"🏆", label:"Award Viewed",       color:C.purple},
+  award_viewed:     {icon:"🏆", label:"Award Viewed",       color:C.ash},
 };
 
 const SEED_LOG = []; // Real activity loaded from Supabase
@@ -582,7 +582,7 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
 
       {/* Intent acknowledgment banner */}
       {!intentStatus ? (
-        <div style={{background:C.navy,borderRadius:10,padding:"18px 22px",marginBottom:20,color:"white"}}>
+        <div style={{background:C.black,borderRadius:10,padding:"18px 22px",marginBottom:20,color:"white"}}>
           <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>📩 Please acknowledge this invitation</div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginBottom:14}}>Let Spindrift and RFPlab know whether you intend to participate in this bid.</div>
           <div style={{marginBottom:12}}>
@@ -599,7 +599,7 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
       ) : (
         <div className={`alert ${intentStatus.event==="intent_yes"?"success":intentStatus.event==="intent_no"?"warn":"info"}`} style={{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span>{intentStatus.event==="intent_yes"?"✅ You confirmed intent to participate":intentStatus.event==="intent_no"?"❌ You declined this bid":"🤔 Marked as undecided"} — {formatTs(intentStatus.ts)}</span>
-          <button style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:C.steel,textDecoration:"underline"}} onClick={()=>{setIntentSaved(false);}}>Change</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:C.ash,textDecoration:"underline"}} onClick={()=>{setIntentSaved(false);}}>Change</button>
         </div>
       )}
 
@@ -608,7 +608,7 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
           {/* Overview — dynamic from bid settings */}
           <div className="card">
             <div className="card-title" style={{marginBottom:12}}>📋 RFP Overview</div>
-            <div style={{fontSize:13,lineHeight:1.7,color:C.text}}>
+            <div style={{fontSize:13,lineHeight:1.7,color:C.black}}>
               {bidSettings?.rfpOverview ||
                 `We are excited to invite you to participate in this freight RFP. Please review the lane file, download all supporting documents, and submit your flat linehaul rate for each lane you can service. All bids are blind — you will not see other carriers' rates or identities.`}
             </div>
@@ -647,7 +647,7 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
           {/* Guidelines — dynamic from bid settings */}
           <div className="card">
             <div className="card-title" style={{marginBottom:12}}>📐 Guidelines & Assumptions</div>
-            <div style={{fontSize:12,lineHeight:1.8,color:C.text}}>
+            <div style={{fontSize:12,lineHeight:1.8,color:C.black}}>
               {(() => {
                 const s = bidSettings || {};
                 const rawGuide = s.guidelines || "";
@@ -675,7 +675,7 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
           {/* Documents */}
           <div className="card">
             <div className="card-title" style={{marginBottom:12}}>📁 Bid Documents</div>
-            <div style={{fontSize:11,color:C.gray,marginBottom:12}}>Download all documents before submitting. The Lane File is where you enter your rates.</div>
+            <div style={{fontSize:11,color:C.stone,marginBottom:12}}>Download all documents before submitting. The Lane File is where you enter your rates.</div>
             {BID_DOC_DEFS.map(doc=>{
               const s = bidSettings || {};
               const available = !!(s[doc.stateKey]);
@@ -712,13 +712,13 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
 
           {/* Quick stats */}
           <div className="card-sm" style={{marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.gray,marginBottom:10}}>BID DETAILS</div>
+            <div style={{fontSize:11,fontWeight:700,color:C.stone,marginBottom:10}}>BID DETAILS</div>
             {[
               ["Lanes","97 total"],["Modes","Dry Van, Reefer, IMDL"],["Term","May 3 – Sep 5, 2026"],
               ["Rate Structure","Flat Linehaul ONLY"],["Rounds","1 round — final"],["Weight","44,500 lbs / load"],
             ].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.grayli}`,fontSize:12}}>
-                <span style={{color:C.gray}}>{k}</span><span style={{fontWeight:600}}>{v}</span>
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.sand}`,fontSize:12}}>
+                <span style={{color:C.stone}}>{k}</span><span style={{fontWeight:600}}>{v}</span>
               </div>
             ))}
           </div>
@@ -726,19 +726,19 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
           {/* My activity on this bid */}
           <div className="card-sm">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.gray}}>MY ACTIVITY</div>
-              <button style={{fontSize:11,color:C.steel,background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setPage("activity")}>Full log →</button>
+              <div style={{fontSize:11,fontWeight:700,color:C.stone}}>MY ACTIVITY</div>
+              <button style={{fontSize:11,color:C.ash,background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}} onClick={()=>setPage("activity")}>Full log →</button>
             </div>
             {myLog.length===0
-              ? <div style={{fontSize:12,color:C.gray,textAlign:"center",padding:"12px 0"}}>No activity yet</div>
+              ? <div style={{fontSize:12,color:C.stone,textAlign:"center",padding:"12px 0"}}>No activity yet</div>
               : myLog.slice(-5).reverse().map(e=>{
-                  const meta = EVENT_TYPE_META[e.event]||{icon:"•",label:e.event,color:C.gray};
+                  const meta = EVENT_TYPE_META[e.event]||{icon:"•",label:e.event,color:C.stone};
                   return (
-                    <div key={e.id} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:`1px solid ${C.grayli}`}}>
+                    <div key={e.id} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:`1px solid ${C.sand}`}}>
                       <span style={{fontSize:14,flexShrink:0}}>{meta.icon}</span>
                       <div>
                         <div style={{fontSize:11,fontWeight:600,color:meta.color}}>{meta.label}</div>
-                        <div style={{fontSize:10,color:C.gray}}>{formatTs(e.ts)}</div>
+                        <div style={{fontSize:10,color:C.stone}}>{formatTs(e.ts)}</div>
                       </div>
                     </div>
                   );
@@ -749,7 +749,7 @@ function EventPage({ carrierName, addLog, activityLog, setPage, bidSettings }) {
 
       {/* Submit rates CTA */}
       {intentStatus?.event==="intent_yes" && (
-        <div style={{background:`linear-gradient(135deg, ${C.slate}, ${C.steel})`,borderRadius:10,padding:"20px 24px",marginTop:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{background:`linear-gradient(135deg, ${C.ink}, ${C.ash})`,borderRadius:10,padding:"20px 24px",marginTop:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontWeight:700,fontSize:15,color:"white"}}>Ready to submit your rates?</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginTop:2}}>Download the Lane File, enter your rates, then submit directly in RFPlab.</div>
@@ -778,10 +778,10 @@ function ActivityLogPage({ activityLog, viewerRole, dbProfile }) {
             <div className="page-sub">All timestamped actions on your bids and loads</div>
           </div>
         </div>
-        <div className="card" style={{textAlign:"center",padding:"52px 20px",border:`2px dashed ${C.grayli}`}}>
+        <div className="card" style={{textAlign:"center",padding:"52px 20px",border:`2px dashed ${C.sand}`}}>
           <div style={{fontSize:36,marginBottom:12}}>📜</div>
-          <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>No activity yet</div>
-          <div style={{fontSize:12,color:C.gray,maxWidth:380,margin:"0 auto"}}>
+          <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No activity yet</div>
+          <div style={{fontSize:12,color:C.stone,maxWidth:380,margin:"0 auto"}}>
             Activity is recorded automatically as carriers view invites, download files, confirm intent, and submit rates. It will appear here once your first RFP is active.
           </div>
         </div>
@@ -831,14 +831,14 @@ function ActivityLogPage({ activityLog, viewerRole, dbProfile }) {
                     <tr key={name}>
                       <td style={{fontWeight:600}}>{name}</td>
                       <td style={{color:C.green,fontSize:12}}>✓ Sent</td>
-                      <td className="mono">{s.viewed||<span style={{color:C.gray}}>—</span>}</td>
-                      <td className="mono">{s.downloaded||<span style={{color:C.gray}}>—</span>}</td>
+                      <td className="mono">{s.viewed||<span style={{color:C.stone}}>—</span>}</td>
+                      <td className="mono">{s.downloaded||<span style={{color:C.stone}}>—</span>}</td>
                       <td>{intentMeta
                         ? <span style={{fontSize:11,fontWeight:600,color:intentMeta.color}}>{intentMeta.icon} {intentMeta.label.replace("Intent: ","")}</span>
-                        : <span style={{color:C.gray,fontSize:11}}>No response</span>}</td>
+                        : <span style={{color:C.stone,fontSize:11}}>No response</span>}</td>
                       <td>{s.submitted
                         ? <span style={{color:C.green,fontWeight:600,fontSize:12}}>✓ Submitted</span>
-                        : <span style={{color:C.gray,fontSize:12}}>—</span>}</td>
+                        : <span style={{color:C.stone,fontSize:12}}>—</span>}</td>
                     </tr>
                   );
                 })}
@@ -859,25 +859,25 @@ function ActivityLogPage({ activityLog, viewerRole, dbProfile }) {
           <option value="all">All event types</option>
           {Object.entries(EVENT_TYPE_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
         </select>
-        <div style={{fontSize:12,color:C.gray,alignSelf:"center",marginLeft:"auto"}}>{displayLog.length} events</div>
+        <div style={{fontSize:12,color:C.stone,alignSelf:"center",marginLeft:"auto"}}>{displayLog.length} events</div>
       </div>
 
       <div className="card" style={{padding:0,overflow:"hidden"}}>
         {displayLog.length===0
-          ? <div style={{padding:32,textAlign:"center",color:C.gray,fontSize:13}}>No events match your filters</div>
+          ? <div style={{padding:32,textAlign:"center",color:C.stone,fontSize:13}}>No events match your filters</div>
           : displayLog.map((e,i)=>{
-              const meta = EVENT_TYPE_META[e.event]||{icon:"•",label:e.event,color:C.gray};
+              const meta = EVENT_TYPE_META[e.event]||{icon:"•",label:e.event,color:C.stone};
               return (
-                <div key={e.id||i} style={{display:"flex",gap:14,padding:"12px 18px",borderBottom:`1px solid ${C.grayli}`,alignItems:"flex-start"}}>
-                  <div style={{width:32,height:32,borderRadius:"50%",background:C.offwhite,border:`1px solid ${C.grayli}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{meta.icon}</div>
+                <div key={e.id||i} style={{display:"flex",gap:14,padding:"12px 18px",borderBottom:`1px solid ${C.sand}`,alignItems:"flex-start"}}>
+                  <div style={{width:32,height:32,borderRadius:"50%",background:C.parchment,border:`1px solid ${C.sand}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{meta.icon}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       {viewerRole!=="carrier" && <span style={{fontWeight:700,fontSize:13}}>{e.carrier}</span>}
                       <span style={{fontWeight:600,fontSize:12,color:meta.color}}>{meta.label}</span>
-                      <span style={{fontSize:11,color:C.gray,marginLeft:"auto",fontFamily:"'DM Mono',monospace"}}>{formatTs(e.ts)}</span>
+                      <span style={{fontSize:11,color:C.stone,marginLeft:"auto",fontFamily:"'DM Mono',monospace"}}>{formatTs(e.ts)}</span>
                     </div>
-                    <div style={{fontSize:12,color:C.gray,marginTop:3}}>{e.detail}</div>
-                    <div style={{fontSize:10,color:C.gray,marginTop:2,fontStyle:"italic"}}>logged by {e.actor}</div>
+                    <div style={{fontSize:12,color:C.stone,marginTop:3}}>{e.detail}</div>
+                    <div style={{fontSize:10,color:C.stone,marginTop:2,fontStyle:"italic"}}>logged by {e.actor}</div>
                   </div>
                 </div>
               );
@@ -914,7 +914,7 @@ function WizNav({ step, completed, onClose, builderRole }) {
         <RFPLabLogo dark size="sm"/>
         <div className="wiz-logo-sub" style={{marginTop:8}}>New RFP Builder</div>
         {builderRole==="admin" && (
-          <div style={{marginTop:8,display:"inline-block",background:"rgba(74,159,200,.15)",color:C.sky,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",padding:"2px 8px",borderRadius:4}}>Admin Mode</div>
+          <div style={{marginTop:8,display:"inline-block",background:C.greenlt,color:C.green,fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",padding:"2px 8px",borderRadius:4}}>Admin Mode</div>
         )}
       </div>
       <div className="wiz-steps">
@@ -1016,11 +1016,11 @@ function WStep1({ data, set }) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
           {terms.map(t=>(
             <div key={t.val} onClick={()=>set("term",t.val)}
-              style={{padding:"10px 12px",border:`2px solid ${data.term===t.val?C.sky:C.grayli}`,
+              style={{padding:"10px 12px",border:`2px solid ${data.term===t.val?C.green:C.sand}`,
                 borderRadius:8,cursor:"pointer",textAlign:"center",
-                background:data.term===t.val?C.ice:C.white,transition:"all .15s"}}>
-              <div style={{fontWeight:700,fontSize:13,color:data.term===t.val?C.steel:C.text}}>{t.label}</div>
-              <div style={{fontSize:10,color:C.gray,marginTop:2}}>{t.desc}</div>
+                background:data.term===t.val?C.greenlt:C.warmWhite,transition:"all .15s"}}>
+              <div style={{fontWeight:700,fontSize:13,color:data.term===t.val?C.ash:C.black}}>{t.label}</div>
+              <div style={{fontSize:10,color:C.stone,marginTop:2}}>{t.desc}</div>
             </div>
           ))}
         </div>
@@ -1124,18 +1124,18 @@ function WStep2({ data, set }) {
                 <div style={{fontSize:11,color:C.stone,marginTop:3}}>.xlsx, .csv, or .pdf · DOE diesel index format</div>
               </div>}
           <div style={{marginTop:10}}>
-            <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Show FSC table to carriers</div><div style={{fontSize:11,color:C.gray}}>Carriers can review the schedule before submitting</div></div><WTog checked={data.fscVisible} onChange={v=>set("fscVisible",v)}/></div>
-            <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Auto-calculate all-in estimate in results</div><div style={{fontSize:11,color:C.gray}}>RFPlab computes total cost using current DOE diesel price</div></div><WTog checked={data.calcAllin} onChange={v=>set("calcAllin",v)}/></div>
+            <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Show FSC table to carriers</div><div style={{fontSize:11,color:C.stone}}>Carriers can review the schedule before submitting</div></div><WTog checked={data.fscVisible} onChange={v=>set("fscVisible",v)}/></div>
+            <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Auto-calculate all-in estimate in results</div><div style={{fontSize:11,color:C.stone}}>RFPlab computes total cost using current DOE diesel price</div></div><WTog checked={data.calcAllin} onChange={v=>set("calcAllin",v)}/></div>
           </div>
         </div>
       )}
 
       <div className="card">
         <div className="card-title">📐 Rate Rules</div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>One round only — best foot forward</div><div style={{fontSize:11,color:C.gray}}>No rebidding after submission</div></div><WTog checked={data.oneRound} onChange={v=>set("oneRound",v)}/></div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow volume-based creative pricing</div><div style={{fontSize:11,color:C.gray}}>Carriers can offer conditional rate reductions by volume threshold</div></div><WTog checked={data.allowCreative} onChange={v=>set("allowCreative",v)}/></div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow IMDL alternate lane bids</div><div style={{fontSize:11,color:C.gray}}>Carriers can submit separate IMDL alternatives for eligible lanes</div></div><WTog checked={data.allowImdl} onChange={v=>set("allowImdl",v)}/></div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Rates must be honored for full term</div><div style={{fontSize:11,color:C.gray}}>Deviations result in removal from spot market access</div></div><WTog checked={data.rateLock} onChange={v=>set("rateLock",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>One round only — best foot forward</div><div style={{fontSize:11,color:C.stone}}>No rebidding after submission</div></div><WTog checked={data.oneRound} onChange={v=>set("oneRound",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow volume-based creative pricing</div><div style={{fontSize:11,color:C.stone}}>Carriers can offer conditional rate reductions by volume threshold</div></div><WTog checked={data.allowCreative} onChange={v=>set("allowCreative",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow IMDL alternate lane bids</div><div style={{fontSize:11,color:C.stone}}>Carriers can submit separate IMDL alternatives for eligible lanes</div></div><WTog checked={data.allowImdl} onChange={v=>set("allowImdl",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Rates must be honored for full term</div><div style={{fontSize:11,color:C.stone}}>Deviations result in removal from spot market access</div></div><WTog checked={data.rateLock} onChange={v=>set("rateLock",v)}/></div>
       </div>
     </div>
   );
@@ -1168,7 +1168,7 @@ function WStep3({ data, set }) {
             <div className="wiz-fg"><label>Primary / Secondary Split</label>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <input type="range" min={50} max={90} step={5} value={data.splitPct} onChange={e=>set("splitPct",parseInt(e.target.value))} style={{flex:1,border:"none",padding:0}}/>
-                <span style={{fontWeight:700,color:C.purple,fontSize:13,minWidth:80}}>{data.splitPct}% / {100-data.splitPct}%</span>
+                <span style={{fontWeight:700,color:C.ash,fontSize:13,minWidth:80}}>{data.splitPct}% / {100-data.splitPct}%</span>
               </div>
             </div>
           )}
@@ -1176,13 +1176,13 @@ function WStep3({ data, set }) {
         <div className="wiz-fg"><label>Asset vs. Broker Target Mix</label>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <input type="range" min={0} max={100} step={10} value={data.assetPct} onChange={e=>set("assetPct",parseInt(e.target.value))} style={{flex:1,border:"none",padding:0}}/>
-            <span style={{fontWeight:700,color:C.purple,fontSize:13,minWidth:100}}>{data.assetPct}% asset / {100-data.assetPct}% broker</span>
+            <span style={{fontWeight:700,color:C.ash,fontSize:13,minWidth:100}}>{data.assetPct}% asset / {100-data.assetPct}% broker</span>
           </div>
         </div>
       </div>
       <div className="card">
         <div className="card-title">📊 Carrier Feedback</div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Enable carrier bid feedback</div><div style={{fontSize:11,color:C.gray}}>Carriers see limited feedback — never other carriers' identities or rates</div></div><WTog checked={data.feedbackEnabled} onChange={v=>set("feedbackEnabled",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Enable carrier bid feedback</div><div style={{fontSize:11,color:C.stone}}>Carriers see limited feedback — never other carriers' identities or rates</div></div><WTog checked={data.feedbackEnabled} onChange={v=>set("feedbackEnabled",v)}/></div>
         {data.feedbackEnabled && (
           <div style={{marginTop:12}}>
             <label style={{marginBottom:8}}>Feedback type</label>
@@ -1328,17 +1328,17 @@ function WStep5({ data, set }) {
       <div className="page-sub">Choose which fields carriers must complete per lane. Toggle on/off, mark required, or add custom fields.</div>
       <div className="card">
         <div className="card-title">⚙️ Operational Fields</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 60px 60px",gap:8,padding:"0 0 8px",borderBottom:`1px solid ${C.grayli}`,marginBottom:8}}>
-          <div style={{fontSize:10,fontWeight:700,color:C.gray}}>FIELD</div>
-          <div style={{fontSize:10,fontWeight:700,color:C.gray,textAlign:"center"}}>VISIBLE</div>
-          <div style={{fontSize:10,fontWeight:700,color:C.gray,textAlign:"center"}}>REQUIRED</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 60px 60px",gap:8,padding:"0 0 8px",borderBottom:`1px solid ${C.sand}`,marginBottom:8}}>
+          <div style={{fontSize:10,fontWeight:700,color:C.stone}}>FIELD</div>
+          <div style={{fontSize:10,fontWeight:700,color:C.stone,textAlign:"center"}}>VISIBLE</div>
+          <div style={{fontSize:10,fontWeight:700,color:C.stone,textAlign:"center"}}>REQUIRED</div>
         </div>
         {fields.map(f=>(
           <div key={f.id} className="fld-row" style={{opacity:f.show?1:0.4}}>
             <span className="fld-name">{f.label}{f.custom&&<span className="badge badge-open" style={{marginLeft:6,fontSize:9,padding:"1px 5px"}}>custom</span>}</span>
             <div style={{display:"flex",gap:16,alignItems:"center",flexShrink:0}}>
               <div style={{width:60,textAlign:"center"}}><WTog checked={f.show} onChange={()=>tog(f.id,"show")}/></div>
-              <div style={{width:60,textAlign:"center"}}><input type="checkbox" checked={f.req} onChange={()=>tog(f.id,"req")} disabled={!f.show} style={{width:16,height:16,accentColor:C.sky}}/></div>
+              <div style={{width:60,textAlign:"center"}}><input type="checkbox" checked={f.req} onChange={()=>tog(f.id,"req")} disabled={!f.show} style={{width:16,height:16,accentColor:C.green}}/></div>
             </div>
           </div>
         ))}
@@ -1351,7 +1351,7 @@ function WStep5({ data, set }) {
         <div className="card-title">📝 SOP Notes</div>
         <div className="wiz-fg"><label>General notes (visible to all carriers)</label><textarea rows={3} value={data.sopNotes||""} onChange={e=>set("sopNotes",e.target.value)} placeholder="e.g. Drivers must check in at gate office. No arrivals before 6 AM..."/></div>
         <div className="wiz-fg"><label>Internal notes (not shared with carriers)</label><textarea rows={2} value={data.privateNotes||""} onChange={e=>set("privateNotes",e.target.value)} placeholder="Internal notes for admin and procurement only..."/></div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow carrier lane-level notes</div><div style={{fontSize:11,color:C.gray}}>Carriers can annotate individual lanes with conditions</div></div><WTog checked={data.allowCarrierNotes!==false} onChange={v=>set("allowCarrierNotes",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Allow carrier lane-level notes</div><div style={{fontSize:11,color:C.stone}}>Carriers can annotate individual lanes with conditions</div></div><WTog checked={data.allowCarrierNotes!==false} onChange={v=>set("allowCarrierNotes",v)}/></div>
       </div>
     </div>
   );
@@ -1385,20 +1385,20 @@ function WStep6({ data, set }) {
       <div className="page-sub">Choose what information carriers provide when accepting the invitation.</div>
       <div className="card">
         <div className="card-title">🚛 Carrier Profile Fields</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 60px 60px",gap:8,padding:"0 0 8px",borderBottom:`1px solid ${C.grayli}`,marginBottom:8}}>
-          <div style={{fontSize:10,fontWeight:700,color:C.gray}}>FIELD</div>
-          <div style={{fontSize:10,fontWeight:700,color:C.gray,textAlign:"center"}}>VISIBLE</div>
-          <div style={{fontSize:10,fontWeight:700,color:C.gray,textAlign:"center"}}>REQUIRED</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 60px 60px",gap:8,padding:"0 0 8px",borderBottom:`1px solid ${C.sand}`,marginBottom:8}}>
+          <div style={{fontSize:10,fontWeight:700,color:C.stone}}>FIELD</div>
+          <div style={{fontSize:10,fontWeight:700,color:C.stone,textAlign:"center"}}>VISIBLE</div>
+          <div style={{fontSize:10,fontWeight:700,color:C.stone,textAlign:"center"}}>REQUIRED</div>
         </div>
         {fields.map(f=>(
           <div key={f.id} className="fld-row" style={{opacity:f.show?1:0.4,flexWrap:"wrap"}}>
             <div style={{flex:1,minWidth:0}}>
               <div className="fld-name">{f.label}{f.custom&&<span className="badge badge-open" style={{marginLeft:6,fontSize:9,padding:"1px 5px"}}>custom</span>}</div>
-              {f.uploadable&&f.show&&<div style={{fontSize:10,color:C.steel,marginTop:2}}>📎 {f.uploadHint}</div>}
+              {f.uploadable&&f.show&&<div style={{fontSize:10,color:C.ash,marginTop:2}}>📎 {f.uploadHint}</div>}
             </div>
             <div style={{display:"flex",gap:16,alignItems:"center",flexShrink:0}}>
               <div style={{width:60,textAlign:"center"}}><WTog checked={f.show} onChange={()=>tog(f.id,"show")}/></div>
-              <div style={{width:60,textAlign:"center"}}><input type="checkbox" checked={f.req} onChange={()=>tog(f.id,"req")} disabled={!f.show} style={{width:16,height:16,accentColor:C.sky}}/></div>
+              <div style={{width:60,textAlign:"center"}}><input type="checkbox" checked={f.req} onChange={()=>tog(f.id,"req")} disabled={!f.show} style={{width:16,height:16,accentColor:C.green}}/></div>
             </div>
           </div>
         ))}
@@ -1537,8 +1537,8 @@ function WStep7({ data, set }) {
         <div className="card">
           <div className="card-title">⭐ Suggested from Previous Bids</div>
           {W_SUGGESTED.map(c=>(
-            <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:`1px solid ${C.grayli}`,borderRadius:7,marginBottom:6}}>
-              <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{c.name}</div><div style={{fontSize:11,color:C.gray}}>{c.scac} · {c.email} · <span className={`badge wiz-badge-${c.type}`}>{c.type}</span></div></div>
+            <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:`1px solid ${C.sand}`,borderRadius:7,marginBottom:6}}>
+              <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{c.name}</div><div style={{fontSize:11,color:C.stone}}>{c.scac} · {c.email} · <span className={`badge wiz-badge-${c.type}`}>{c.type}</span></div></div>
               <button className="btn btn-sm btn-primary" onClick={()=>addSug(c)}>+ Add</button>
             </div>
           ))}
@@ -1550,15 +1550,15 @@ function WStep7({ data, set }) {
         <div className="card">
           <div className="card-header">
             <div className="card-title">📋 Invited Carriers ({carriers.length})</div>
-            <div style={{fontSize:11,color:C.gray}}>{carriers.filter(c=>c.type==="asset").length} asset · {carriers.filter(c=>c.type==="broker").length} broker</div>
+            <div style={{fontSize:11,color:C.stone}}>{carriers.filter(c=>c.type==="asset").length} asset · {carriers.filter(c=>c.type==="broker").length} broker</div>
           </div>
           {carriers.map(c=>(
-            <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:`1px solid ${C.grayli}`,borderRadius:7,marginBottom:6}}>
+            <div key={c.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",border:`1px solid ${C.sand}`,borderRadius:7,marginBottom:6}}>
               <div style={{flex:1}}>
                 <div style={{fontWeight:600,fontSize:12}}>{c.name} <span className={`badge wiz-badge-${c.type==="asset"?"asset":"broker"}`}>{c.type}</span></div>
-                <div style={{fontSize:11,color:C.gray}}>{c.scac&&`${c.scac} · `}{c.dot&&`DOT ${c.dot} · `}{c.contact&&`${c.contact} · `}{c.email}</div>
+                <div style={{fontSize:11,color:C.stone}}>{c.scac&&`${c.scac} · `}{c.dot&&`DOT ${c.dot} · `}{c.contact&&`${c.contact} · `}{c.email}</div>
               </div>
-              <button className="btn btn-ghost btn-sm" style={{color:C.red}} onClick={()=>remove(c.id)}>✕</button>
+              <button className="btn btn-ghost btn-sm" style={{color:C.rust}} onClick={()=>remove(c.id)}>✕</button>
             </div>
           ))}
         </div>
@@ -1578,7 +1578,7 @@ function WStep8({ data, set }) {
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[{key:"inviteDate",label:"Invite Sent",sub:"Carriers receive their secure link"},{key:"ackDeadline",label:"Acknowledgment Due",sub:"Carriers confirm intent to bid"},{key:"rateDeadline",label:"Rates Due",sub:"Final submission deadline"},{key:"reviewDate",label:"Internal Review",sub:"RFPlab + shipper review session"},{key:"awardDate",label:"Awards Sent",sub:"Carriers notified of decisions"},{key:"goLiveDate",label:"Rates Go Live",sub:"Contract start date"}].map(item=>(
             <div key={item.key} className="tline-item">
-              <div><div className="tline-lbl">{item.label}</div><div style={{fontSize:10,color:C.gray}}>{item.sub}</div></div>
+              <div><div className="tline-lbl">{item.label}</div><div style={{fontSize:10,color:C.stone}}>{item.sub}</div></div>
               <input type="date" value={data[item.key]||""} onChange={e=>set(item.key,e.target.value)}/>
               <input placeholder="Note..." style={{fontSize:11}} value={data[item.key+"Note"]||""} onChange={e=>set(item.key+"Note",e.target.value)}/>
             </div>
@@ -1587,9 +1587,9 @@ function WStep8({ data, set }) {
       </div>
       <div className="card">
         <div className="card-title">🔄 Second Round</div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Enable a second round</div><div style={{fontSize:11,color:C.gray}}>Invite select carriers to re-bid on specific lanes. Max 2 rounds total.</div></div><WTog checked={data.twoRounds||false} onChange={v=>set("twoRounds",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Enable a second round</div><div style={{fontSize:11,color:C.stone}}>Invite select carriers to re-bid on specific lanes. Max 2 rounds total.</div></div><WTog checked={data.twoRounds||false} onChange={v=>set("twoRounds",v)}/></div>
         {data.twoRounds && (
-          <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.grayli}`}}>
+          <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.sand}`}}>
             <div className="wiz-alr warn">Round 2 is typically limited to a subset of lanes and select carriers — not a full re-bid.</div>
             <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:10}}>
               {[{key:"r2InviteDate",label:"Round 2 Invite"},{key:"r2RateDeadline",label:"Round 2 Rates Due"},{key:"r2AwardDate",label:"Final Awards Sent"}].map(item=>(
@@ -1629,7 +1629,7 @@ function WStep9({ data, set }) {
         <div className="card-title">🔔 Notification Schedule</div>
         {rows.map(r=>(
           <div key={r.key} className="notif-card">
-            <div style={{flex:1}}><div style={{fontSize:12,fontWeight:500}}>{r.label}</div><div style={{fontSize:11,color:C.gray,marginTop:1}}>{r.sub}</div></div>
+            <div style={{flex:1}}><div style={{fontSize:12,fontWeight:500}}>{r.label}</div><div style={{fontSize:11,color:C.stone,marginTop:1}}>{r.sub}</div></div>
             <span className={`badge ${r.scope==="Shipper"?"awarded":"badge-asset"}`} style={{marginRight:12,fontSize:9}}>{r.scope}</span>
             <WTog checked={notifs[r.key]} onChange={v=>setN({[r.key]:v})}/>
           </div>
@@ -1696,14 +1696,14 @@ function WStep10({ allData, onLaunch }) {
           {sections.map(s=>(
             <div key={s.label} className="sum-row">
               <span className="sum-key">{s.label}</span>
-              <span className="sum-val" style={{color:s.val?.includes("⚠")?C.amber:C.text}}>{s.val}</span>
+              <span className="sum-val" style={{color:s.val?.includes("⚠")?C.amber:C.black}}>{s.val}</span>
             </div>
           ))}
         </div>
       </div>
       <div className="card">
         <div className="card-title">🧪 Send Test Invite</div>
-        <div style={{fontSize:12,color:C.gray,marginBottom:12,lineHeight:1.6}}>Send yourself a test copy of the carrier invite before going live. Clearly marked [TEST] — goes only to you.</div>
+        <div style={{fontSize:12,color:C.stone,marginBottom:12,lineHeight:1.6}}>Send yourself a test copy of the carrier invite before going live. Clearly marked [TEST] — goes only to you.</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <input style={{maxWidth:260}} type="email" value={testEmail} onChange={e=>setTestEmail(e.target.value)} placeholder="your@email.com"/>
           <button className="btn btn-outline" onClick={async()=>{
@@ -1730,30 +1730,30 @@ function WStep10({ allData, onLaunch }) {
       </div>
       {showPreview && (
         <div className="card" style={{padding:0,overflow:"hidden"}}>
-          <div style={{background:C.off,borderBottom:`1px solid ${C.grayli}`,padding:"10px 18px"}}>
-            <div style={{fontSize:10,fontWeight:700,color:C.gray,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>Email Preview</div>
+          <div style={{background:C.parchment,borderBottom:`1px solid ${C.sand}`,padding:"10px 18px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:C.stone,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>Email Preview</div>
             <div style={{display:"grid",gridTemplateColumns:"60px 1fr",gap:"3px 10px",fontSize:12}}>
-              <span style={{color:C.gray}}>From:</span><span style={{fontWeight:600}}>RFPlab &lt;noreply@rfplab.com&gt;</span>
-              <span style={{color:C.gray}}>To:</span><span style={{color:C.steel}}>[Carrier Contact Email]</span>
-              <span style={{color:C.gray}}>Subject:</span><span style={{fontWeight:600}}>{emailSub}</span>
+              <span style={{color:C.stone}}>From:</span><span style={{fontWeight:600}}>RFPlab &lt;noreply@rfplab.com&gt;</span>
+              <span style={{color:C.stone}}>To:</span><span style={{color:C.ash}}>[Carrier Contact Email]</span>
+              <span style={{color:C.stone}}>Subject:</span><span style={{fontWeight:600}}>{emailSub}</span>
             </div>
           </div>
           <div style={{padding:"24px 28px",background:"white",maxWidth:580,margin:"0 auto"}}>
-            <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${C.grayli}`}}><RFPLabLogo dark={false} size="sm"/></div>
-            <div style={{fontSize:15,fontWeight:700,color:C.navy,marginBottom:4}}>{rfpName}</div>
-            <div style={{fontSize:12,color:C.gray,marginBottom:16}}>{shipper} · {allData.basics.modes?.join(", ")||"Truckload"} · Rates due: {fmtDateShort(deadline)}</div>
-            <div style={{fontSize:13,color:C.text,lineHeight:1.75,marginBottom:20}}>{emailBody}</div>
+            <div style={{marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${C.sand}`}}><RFPLabLogo dark={false} size="sm"/></div>
+            <div style={{fontSize:15,fontWeight:700,color:C.black,marginBottom:4}}>{rfpName}</div>
+            <div style={{fontSize:12,color:C.stone,marginBottom:16}}>{shipper} · {allData.basics.modes?.join(", ")||"Truckload"} · Rates due: {fmtDateShort(deadline)}</div>
+            <div style={{fontSize:13,color:C.black,lineHeight:1.75,marginBottom:20}}>{emailBody}</div>
             <div style={{textAlign:"center",margin:"20px 0"}}>
-              <div style={{display:"inline-block",background:C.navy,color:"white",padding:"11px 28px",borderRadius:8,fontWeight:700,fontSize:14}}>View Bid &amp; Submit Rates →</div>
-              <div style={{fontSize:10,color:C.gray,marginTop:6}}>Unique secure link — expires {deadline}. Do not forward.</div>
+              <div style={{display:"inline-block",background:C.black,color:"white",padding:"11px 28px",borderRadius:8,fontWeight:700,fontSize:14}}>View Bid &amp; Submit Rates →</div>
+              <div style={{fontSize:10,color:C.stone,marginTop:6}}>Unique secure link — expires {deadline}. Do not forward.</div>
             </div>
-            <div style={{background:C.off,border:`1px solid ${C.grayli}`,borderRadius:8,padding:"12px 16px",marginBottom:20}}>
-              <div style={{fontSize:10,fontWeight:700,color:C.gray,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>Key Dates</div>
+            <div style={{background:C.parchment,border:`1px solid ${C.sand}`,borderRadius:8,padding:"12px 16px",marginBottom:20}}>
+              <div style={{fontSize:10,fontWeight:700,color:C.stone,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>Key Dates</div>
               {[["Rates Due",allData.timeline.rateDeadline],["Awards Sent",allData.timeline.awardDate],["Go Live",allData.timeline.goLiveDate]].map(([k,v])=>(
-                <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderBottom:`1px solid ${C.grayli}`}}><span style={{color:C.gray}}>{k}</span><span style={{fontWeight:600}}>{fmtDateShort(v)}</span></div>
+                <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"3px 0",borderBottom:`1px solid ${C.sand}`}}><span style={{color:C.stone}}>{k}</span><span style={{fontWeight:600}}>{fmtDateShort(v)}</span></div>
               ))}
             </div>
-            <div style={{fontSize:11,color:C.gray,borderTop:`1px solid ${C.grayli}`,paddingTop:14,lineHeight:1.7}}>
+            <div style={{fontSize:11,color:C.stone,borderTop:`1px solid ${C.sand}`,paddingTop:14,lineHeight:1.7}}>
               You received this because {shipper} invited you via RFPlab. Questions? Please email Mike@rfplab.com<br/>
               © 2026 RFPlab · rfplab.com
             </div>
@@ -1762,8 +1762,8 @@ function WStep10({ allData, onLaunch }) {
       )}
       <div className="card">
         <div className="card-title">🚀 Launch Options</div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Send invites immediately on launch</div><div style={{fontSize:11,color:C.gray}}>Carriers receive the invite email the moment you click Launch</div></div><WTog checked={allData.basics.sendNow!==false} onChange={v=>allData.basics.setSelf("sendNow",v)}/></div>
-        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Schedule for a future date</div><div style={{fontSize:11,color:C.gray}}>Hold in draft until a specific date and time</div></div><WTog checked={allData.basics.scheduled||false} onChange={v=>allData.basics.setSelf("scheduled",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Send invites immediately on launch</div><div style={{fontSize:11,color:C.stone}}>Carriers receive the invite email the moment you click Launch</div></div><WTog checked={allData.basics.sendNow!==false} onChange={v=>allData.basics.setSelf("sendNow",v)}/></div>
+        <div className="tog-row"><div><div style={{fontWeight:600,fontSize:13}}>Schedule for a future date</div><div style={{fontSize:11,color:C.stone}}>Hold in draft until a specific date and time</div></div><WTog checked={allData.basics.scheduled||false} onChange={v=>allData.basics.setSelf("scheduled",v)}/></div>
         {allData.basics.scheduled && (
           <div className="wiz-row2" style={{marginTop:8}}>
             <div className="wiz-fg"><label>Send invites on</label><input type="date" value={allData.basics.schedDate||""} onChange={e=>allData.basics.setSelf("schedDate",e.target.value)}/></div>
@@ -1964,8 +1964,8 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
   if(launched) return (
     <div style={{maxWidth:520,margin:"60px auto",textAlign:"center",padding:"0 32px"}}>
       <div style={{fontSize:52,marginBottom:16}}>🎉</div>
-      <div style={{fontSize:22,fontWeight:700,color:C.navy,marginBottom:8}}>RFP Launched!</div>
-      <div style={{fontSize:14,color:C.gray,marginBottom:24,lineHeight:1.6}}>
+      <div style={{fontSize:22,fontWeight:700,color:C.black,marginBottom:8}}>RFP Launched!</div>
+      <div style={{fontSize:14,color:C.stone,marginBottom:24,lineHeight:1.6}}>
         <strong>{basics.name||"Your RFP"}</strong> is live. Invitations being sent to <strong>{cData.carriers?.length||0} carriers and brokers</strong>.
       </div>
       <button className="btn btn-primary" onClick={onClose}>← Back to Dashboard</button>
@@ -1981,16 +1981,16 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
         <div style={{padding:"0 14px 14px",borderBottom:"1px solid rgba(255,255,255,.08)",marginBottom:8}}>
           <div style={{fontSize:10,fontWeight:700,color:C.green,letterSpacing:1.5,textTransform:"uppercase"}}>RFP Builder</div>
           {basics.name && <div style={{fontSize:12,fontWeight:600,color:"white",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{basics.name}</div>}
-          {builderRole==="admin" && <div style={{fontSize:9,fontWeight:700,color:C.sky,background:"rgba(74,159,200,.15)",padding:"2px 6px",borderRadius:4,marginTop:4,display:"inline-block"}}>ADMIN MODE</div>}
+          {builderRole==="admin" && <div style={{fontSize:9,fontWeight:700,color:C.green,background:C.greenlt,padding:"2px 6px",borderRadius:4,marginTop:4,display:"inline-block"}}>ADMIN MODE</div>}
         </div>
         {/* Progress bar */}
         <div style={{padding:"0 14px 12px",borderBottom:"1px solid rgba(255,255,255,.08)",marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
             <span style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>Progress</span>
-            <span style={{fontSize:10,fontWeight:700,color:C.sky}}>{pct}%</span>
+            <span style={{fontSize:10,fontWeight:700,color:C.green}}>{pct}%</span>
           </div>
           <div style={{height:4,background:"rgba(255,255,255,.1)",borderRadius:2}}>
-            <div style={{height:4,background:C.sky,borderRadius:2,width:`${pct}%`,transition:"width .3s"}}/>
+            <div style={{height:4,background:C.green,borderRadius:2,width:`${pct}%`,transition:"width .3s"}}/>
           </div>
           {lastSaved && (
             <div style={{fontSize:9,color:"rgba(255,255,255,.3)",marginTop:5}}>
@@ -2009,12 +2009,12 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
                   style={{display:"flex",alignItems:"center",gap:7,padding:"6px 14px",
                     cursor:isDone?"pointer":"default",
                     background:isAct?"rgba(74,159,200,.15)":"transparent",
-                    borderLeft:`2px solid ${isAct?C.sky:"transparent"}`}}>
+                    borderLeft:`2px solid ${isAct?C.green:"transparent"}`}}>
                   <div style={{width:18,height:18,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,
-                    background:isDone?C.green:isAct?C.sky:"rgba(255,255,255,.1)",color:"white"}}>
+                    background:isDone?C.green:isAct?C.green:"rgba(255,255,255,.1)",color:"white"}}>
                     {isDone?"✓":s.id}
                   </div>
-                  <span style={{fontSize:11,fontWeight:isAct?600:400,color:isAct?C.sky:isDone?"rgba(255,255,255,.7)":"rgba(255,255,255,.4)"}}>{s.label}</span>
+                  <span style={{fontSize:11,fontWeight:isAct?600:400,color:isAct?C.green:isDone?"rgba(255,255,255,.7)":"rgba(255,255,255,.4)"}}>{s.label}</span>
                 </div>
               );
             })}
@@ -2030,8 +2030,8 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
       {/* Step content */}
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         {/* Mini topbar */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",borderBottom:`1px solid ${C.grayli}`,background:C.white,borderRadius:"0 10px 0 0"}}>
-          <div style={{fontSize:12,color:C.gray}}>Step {step} of 10 — <strong style={{color:C.text}}>{stepLabel}</strong></div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px",borderBottom:`1px solid ${C.sand}`,background:C.warmWhite,borderRadius:"0 10px 0 0"}}>
+          <div style={{fontSize:12,color:C.stone}}>Step {step} of 10 — <strong style={{color:C.black}}>{stepLabel}</strong></div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {draftSaved && <span style={{fontSize:11,color:C.green,fontWeight:600}}>✓ Draft saved</span>}
             <button className="btn btn-outline btn-sm" onClick={handleSaveDraft}>💾 Save Draft</button>
@@ -2043,7 +2043,7 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
           {renderStep()}
 
           {step<10 && (
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:20,borderTop:`1px solid ${C.grayli}`,marginTop:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:20,borderTop:`1px solid ${C.sand}`,marginTop:8}}>
               <button className="btn btn-outline" onClick={prev} disabled={step===1} style={{opacity:step===1?0.3:1}}>← Back</button>
               <div style={{display:"flex",gap:8}}>
                 <button className="btn btn-outline btn-sm" onClick={handleSaveDraft}>💾 Save Draft</button>
@@ -2085,7 +2085,7 @@ function spotStatusBadge(load) {
   if (load.awarded) return <span className="badge awarded">✓ Awarded</span>;
   const diff = load.windowEnds - Date.now();
   if (diff<=0) return <span className="badge badge-open">Closed</span>;
-  if (diff<600000) return <span className="badge" style={{background:C.redlt,color:C.red}}>⏱ Closing</span>;
+  if (diff<600000) return <span className="badge" style={{background:C.rustlt,color:C.rust}}>⏱ Closing</span>;
   return <span className="badge" style={{background:C.greenlt,color:C.green,display:"inline-flex",alignItems:"center",gap:4}}><span className="live-dot"/> Live</span>;
 }
 
@@ -2095,14 +2095,14 @@ function SpotQuoteBar({ q, idx, isAwarded, isMe, blind=false }) {
     <div className={`quote-bar${isAwarded&&idx===0?" winning":isMe?" myquote":""}`}>
       <span className={`rank-circ ${rc}`}>#{idx+1}</span>
       {blind
-        ? <div style={{flex:1,fontWeight:600,fontSize:12,color:C.gray,fontStyle:"italic"}}>{isMe?`You — ${carrierName}`:"(Confidential)"}</div>
+        ? <div style={{flex:1,fontWeight:600,fontSize:12,color:C.stone,fontStyle:"italic"}}>{isMe?`You — ${carrierName}`:"(Confidential)"}</div>
         : <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:600,fontSize:12}}>{q.carrier}</div>
             <span className={`badge ${q.type==="asset"?"badge-asset":"badge-broker"}`} style={{fontSize:9,padding:"1px 6px"}}>{q.type}</span>
           </div>}
       <div style={{textAlign:"right"}}>
-        <div className="mono" style={{fontSize:13,fontWeight:700,color:idx===0?C.green:C.text}}>${q.amount.toLocaleString()}</div>
-        <div style={{fontSize:10,color:C.gray}}>{new Date(q.ts).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
+        <div className="mono" style={{fontSize:13,fontWeight:700,color:idx===0?C.green:C.black}}>${q.amount.toLocaleString()}</div>
+        <div style={{fontSize:10,color:C.stone}}>{new Date(q.ts).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
       </div>
       {isAwarded&&idx===0&&<span className="badge awarded" style={{marginLeft:6}}>Won</span>}
     </div>
@@ -2135,9 +2135,9 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
       <div className="spot-modal" onClick={e=>e.stopPropagation()}>
         <div className="spot-modal-hdr">
           <div>
-            <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{load.origin.city}, {load.origin.state} → {load.dest.city}, {load.dest.state}</div>
+            <div style={{fontWeight:700,fontSize:14,color:C.black}}>{load.origin.city}, {load.origin.state} → {load.dest.city}, {load.dest.state}</div>
             <div style={{display:"flex",gap:6,alignItems:"center",marginTop:5,flexWrap:"wrap"}}>
-              <span className="mono" style={{fontSize:10,color:C.gray}}>{load.id}</span>
+              <span className="mono" style={{fontSize:10,color:C.stone}}>{load.id}</span>
               {spotStatusBadge(load)}
               <span className="badge badge-open">{load.mode}</span>
               {load.temp&&<span className="badge badge-open">{load.temp}</span>}
@@ -2160,11 +2160,11 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                 {[{lbl:"Pickup",loc:load.origin,date:load.pickup,win:load.puWindow},{lbl:"Delivery",loc:load.dest,date:load.delivery,win:load.dlWindow}].map(x=>(
                   <div key={x.lbl} className="card-sm" style={{marginBottom:0}}>
-                    <div style={{fontSize:10,fontWeight:700,color:C.gray,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>{x.lbl}</div>
-                    <div style={{fontWeight:700,fontSize:13,color:C.navy}}>{x.loc.city}, {x.loc.state} {x.loc.zip}</div>
-                    <div style={{fontSize:11,color:C.gray}}>{x.loc.facility}</div>
-                    <div style={{fontSize:11,color:C.gray,marginBottom:6}}>{x.loc.addr}</div>
-                    <div style={{padding:"5px 8px",background:C.offwhite,borderRadius:5,fontSize:11}}><strong>{x.date}</strong> · {x.win}</div>
+                    <div style={{fontSize:10,fontWeight:700,color:C.stone,letterSpacing:.5,textTransform:"uppercase",marginBottom:8}}>{x.lbl}</div>
+                    <div style={{fontWeight:700,fontSize:13,color:C.black}}>{x.loc.city}, {x.loc.state} {x.loc.zip}</div>
+                    <div style={{fontSize:11,color:C.stone}}>{x.loc.facility}</div>
+                    <div style={{fontSize:11,color:C.stone,marginBottom:6}}>{x.loc.addr}</div>
+                    <div style={{padding:"5px 8px",background:C.parchment,borderRadius:5,fontSize:11}}><strong>{x.date}</strong> · {x.win}</div>
                   </div>
                 ))}
               </div>
@@ -2182,9 +2182,9 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                 <div style={{fontSize:13,fontWeight:600}}>{load.quotes.length} quote{load.quotes.length!==1?"s":""}</div>
-                {low&&<div style={{fontSize:12,color:C.gray}}>Low: <strong className="mono" style={{color:C.green}}>${low.toLocaleString()}</strong></div>}
+                {low&&<div style={{fontSize:12,color:C.stone}}>Low: <strong className="mono" style={{color:C.green}}>${low.toLocaleString()}</strong></div>}
               </div>
-              {sorted.length===0&&<div style={{textAlign:"center",padding:"28px 0",color:C.gray,fontSize:12}}>No quotes yet.</div>}
+              {sorted.length===0&&<div style={{textAlign:"center",padding:"28px 0",color:C.stone,fontSize:12}}>No quotes yet.</div>}
               {sorted.map((q,i)=><SpotQuoteBar key={q.id} q={q} idx={i} isAwarded={!!load.awarded} isMe={q.carrier===displayName} blind={role==="carrier"&&q.carrier!==displayName}/>)}
             </div>
           )}
@@ -2195,7 +2195,7 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
                 <div className="alert info">Submit your all-in rate. Quotes are binding if accepted. You will not see other carriers' rates or identities.</div>
                 {myQ&&<div className="alert" style={{background:C.greenlt,color:C.green,borderLeft:`3px solid ${C.green}`,marginBottom:10}}>Current quote: <strong className="mono">${myQ.amount.toLocaleString()}</strong> · Update before window closes.</div>}
                 <div className="bid-zone">
-                  <span style={{fontSize:12,color:C.gray,fontWeight:600}}>All-in rate ($)</span>
+                  <span style={{fontSize:12,color:C.stone,fontWeight:600}}>All-in rate ($)</span>
                   <input type="number" value={myQuote} onChange={e=>setMyQuote(e.target.value)} placeholder={myQ?myQ.amount.toString():"0.00"}/>
                   <button className="btn btn-green btn-sm" onClick={handleSubmit} disabled={submitting||!myQuote}>{submitting?"…":myQ?"Update Quote":"Submit Quote"}</button>
                 </div>
@@ -2212,11 +2212,11 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
                   : <>
                       <div className="alert info">Select the carrier to award. They will be notified immediately.</div>
                       {sorted.map((q,i)=>(
-                        <div key={q.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:`1px solid ${awardPick===q.id?C.green:C.grayli}`,borderRadius:8,marginBottom:6,background:awardPick===q.id?C.greenlt:C.white,cursor:"pointer"}} onClick={()=>setAwardPick(q.id)}>
+                        <div key={q.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:`1px solid ${awardPick===q.id?C.green:C.sand}`,borderRadius:8,marginBottom:6,background:awardPick===q.id?C.greenlt:C.warmWhite,cursor:"pointer"}} onClick={()=>setAwardPick(q.id)}>
                           <input type="radio" readOnly checked={awardPick===q.id} style={{accentColor:C.green}}/>
                           <span className={`rank-circ ${i===0?"rc1":i===1?"rc2":"rc3"}`}>#{i+1}</span>
                           <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{q.carrier}</div><span className={`badge ${q.type==="asset"?"badge-asset":"badge-broker"}`} style={{fontSize:9}}>{q.type}</span></div>
-                          <div className="mono" style={{fontSize:14,fontWeight:700,color:i===0?C.green:C.text}}>${q.amount.toLocaleString()}</div>
+                          <div className="mono" style={{fontSize:14,fontWeight:700,color:i===0?C.green:C.black}}>${q.amount.toLocaleString()}</div>
                         </div>
                       ))}
                       {awardPick&&(
@@ -2257,7 +2257,7 @@ function SpotPostModal({ onClose, onPost }) {
     <div className="spot-modal-bg" onClick={onClose}>
       <div className="spot-modal" onClick={e=>e.stopPropagation()}>
         <div className="spot-modal-hdr">
-          <div><div style={{fontWeight:700,fontSize:14}}>Post Spot Load</div><div style={{fontSize:11,color:C.gray,marginTop:2}}>Step {step} of 3</div></div>
+          <div><div style={{fontWeight:700,fontSize:14}}>Post Spot Load</div><div style={{fontSize:11,color:C.stone,marginTop:2}}>Step {step} of 3</div></div>
           <button className="btn btn-ghost" onClick={onClose} style={{fontSize:18}}>✕</button>
         </div>
         <div className="step-prog"><div className="step-prog-fill" style={{width:`${(step/3)*100}%`}}/></div>
@@ -2267,7 +2267,7 @@ function SpotPostModal({ onClose, onPost }) {
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
               {[{lbl:"Origin",pre:"orig",dk:"pickup",wk:"puWindow"},{lbl:"Destination",pre:"dest",dk:"delivery",wk:"dlWindow"}].map(loc=>(
                 <div key={loc.pre}>
-                  <div style={{fontSize:10,fontWeight:700,color:C.gray,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>{loc.lbl}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:C.stone,textTransform:"uppercase",letterSpacing:.5,marginBottom:8}}>{loc.lbl}</div>
                   <div className="fg"><label>City</label><input value={f[loc.pre+"City"]} onChange={e=>s(loc.pre+"City",e.target.value)} placeholder={loc.pre==="orig"?"Irwindale":"Aurora"}/></div>
                   <div style={{display:"grid",gridTemplateColumns:"60px 1fr",gap:8}}>
                     <div className="fg"><label>St</label><input value={f[loc.pre+"State"]} onChange={e=>s(loc.pre+"State",e.target.value)}/></div>
@@ -2306,11 +2306,11 @@ function SpotPostModal({ onClose, onPost }) {
           {step===3&&<div>
             <div style={{fontWeight:600,fontSize:13,marginBottom:12}}>🚛 Carrier Invite</div>
             <div className="alert info">Only invited carriers can see and quote this load.</div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",border:`1px solid ${C.grayli}`,borderRadius:8,marginBottom:10}}>
-              <div><div style={{fontWeight:600,fontSize:13}}>Invite all active carrier partners</div><div style={{fontSize:11,color:C.gray}}>13 carriers in your approved network</div></div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",border:`1px solid ${C.sand}`,borderRadius:8,marginBottom:10}}>
+              <div><div style={{fontWeight:600,fontSize:13}}>Invite all active carrier partners</div><div style={{fontSize:11,color:C.stone}}>13 carriers in your approved network</div></div>
               <label className="toggle"><input type="checkbox" checked={f.inviteAll} onChange={e=>s("inviteAll",e.target.checked)}/><span className="tog-sl"/></label>
             </div>
-            {!posted&&<div style={{marginTop:12,padding:"14px",background:C.navy,borderRadius:10,color:"white"}}>
+            {!posted&&<div style={{marginTop:12,padding:"14px",background:C.black,borderRadius:10,color:"white"}}>
               <div style={{fontWeight:700,fontSize:13,marginBottom:3}}>Ready to post</div>
               <div style={{fontSize:11,color:"rgba(255,255,255,.65)",marginBottom:10}}>Quote window: {f.window} · {f.inviteAll?"All 13 partners":"Selected carriers"} notified</div>
               <button className="btn btn-green" onClick={handlePost}>⚡ Post Load Now</button>
@@ -2337,7 +2337,7 @@ function SpotLoadCard({ load, role, onClick }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}>
         <div className="route-pill">
           <span className="rdot-o"/>{load.origin.city}, {load.origin.state}<span className="rdash"/><span className="rdot-d"/>{load.dest.city}, {load.dest.state}
-          <span style={{fontSize:11,color:C.gray,fontWeight:400,marginLeft:4}}>({load.miles.toLocaleString()} mi)</span>
+          <span style={{fontSize:11,color:C.stone,fontWeight:400,marginLeft:4}}>({load.miles.toLocaleString()} mi)</span>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
           {spotStatusBadge(load)}
@@ -2345,14 +2345,14 @@ function SpotLoadCard({ load, role, onClick }) {
         </div>
       </div>
       <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-        <span className="mono" style={{fontSize:10,color:C.gray}}>{load.id}</span>
+        <span className="mono" style={{fontSize:10,color:C.stone}}>{load.id}</span>
         <span className="badge badge-open">{load.mode}</span>
         {load.temp&&<span className="badge badge-open">{load.temp}</span>}
-        <span style={{fontSize:11,color:C.gray}}>{load.pickup} · {load.puWindow}</span>
+        <span style={{fontSize:11,color:C.stone}}>{load.pickup} · {load.puWindow}</span>
         <span style={{marginLeft:"auto",fontSize:11,fontWeight:600}}>
           {load.quotes.length} quote{load.quotes.length!==1?"s":""}
           {low&&<span style={{color:C.green}}> · Low: ${low.toLocaleString()}</span>}
-          {role==="carrier"&&myQ&&<span style={{color:C.sky}}> · Your quote: ${myQ.amount.toLocaleString()}</span>}
+          {role==="carrier"&&myQ&&<span style={{color:C.green}}> · Your quote: ${myQ.amount.toLocaleString()}</span>}
           {role==="carrier"&&!myQ&&load.windowEnds>Date.now()&&!load.awarded&&<span style={{color:"#C2410C"}}> · No quote →</span>}
         </span>
       </div>
@@ -2429,7 +2429,7 @@ function SpotBoard({ role, dbProfile }) {
         {["all","live","awarded","closed"].map(t=><div key={t} className={`tab${filter===t?" active":""}`} onClick={()=>setFilter(t)} style={{textTransform:"capitalize"}}>{t}</div>)}
       </div>
       {filtered.map(load=><SpotLoadCard key={load.id} load={load} role={role} onClick={()=>setSelected(load)}/>)}
-      {filtered.length===0&&<div className="card" style={{textAlign:"center",padding:"36px",color:C.gray,fontSize:12}}>No loads in this category.</div>}
+      {filtered.length===0&&<div className="card" style={{textAlign:"center",padding:"36px",color:C.stone,fontSize:12}}>No loads in this category.</div>}
       {selected&&<SpotLoadModal load={selected} role={role} onClose={()=>setSelected(null)} onAward={handleAward} onQuote={handleQuote}/>}
       {showPost&&<SpotPostModal onClose={()=>setShowPost(false)} onPost={handlePost}/>}
     </div>
@@ -2529,7 +2529,7 @@ function Sidebar({ role, page, setPage }) {
 function RoleSwitcher({ role, setRole, setPage }) {
   return (
     <div style={{display:"flex",gap:6,alignItems:"center"}}>
-      <span style={{fontSize:11,color:C.gray,marginRight:4}}>View as:</span>
+      <span style={{fontSize:11,color:C.stone,marginRight:4}}>View as:</span>
       {["admin","shipper","carrier"].map(r=>(
         <button key={r} className="role-btn" onClick={()=>setRole(r)}>
           <span className={`role-pill ${r}`}>{r}</span>
@@ -2600,9 +2600,9 @@ function ResultsPage({ bidSettings }) {
         </div>
         {scenario && (
           <div style={{textAlign:"right",minWidth:140}}>
-            <div style={{fontSize:10,color:C.purple,fontWeight:600}}>SCENARIO SPEND</div>
-            <div style={{fontSize:18,fontWeight:700,color:C.purple}}>${(scenarioSpend/1000).toFixed(0)}K</div>
-            <div style={{fontSize:10,color:C.purple}}>vs ${(totalManualSpend/1000).toFixed(0)}K manual</div>
+            <div style={{fontSize:10,color:C.ash,fontWeight:600}}>SCENARIO SPEND</div>
+            <div style={{fontSize:18,fontWeight:700,color:C.ash}}>${(scenarioSpend/1000).toFixed(0)}K</div>
+            <div style={{fontSize:10,color:C.ash}}>vs ${(totalManualSpend/1000).toFixed(0)}K manual</div>
           </div>
         )}
       </div>
@@ -2636,7 +2636,7 @@ function ResultsPage({ bidSettings }) {
 
                   return (
                     <tr key={l.id} style={awardedCarrier ? {background:"#F0FDF4"} : {}}>
-                      <td className="mono" style={{fontSize:11,color:C.gray}}>{l.id}</td>
+                      <td className="mono" style={{fontSize:11,color:C.stone}}>{l.id}</td>
                       <td><span className={`badge ${l.type.toLowerCase()}`}>{l.type}</span></td>
                       <td style={{fontSize:12}}>{l.origCity},{l.origSt}→{l.destCity},{l.destSt}</td>
                       <td style={{fontSize:11}}>{l.mode}</td>
@@ -2646,9 +2646,9 @@ function ResultsPage({ bidSettings }) {
                           ? <div>
                               <span className="incumbent-tag">INCMBT</span>
                               <div style={{fontSize:11,fontWeight:600,marginTop:2}}>{l.incumbent}</div>
-                              <div className="mono" style={{fontSize:10,color:C.gray}}>${l.incumbentRate?.toLocaleString()}</div>
+                              <div className="mono" style={{fontSize:10,color:C.stone}}>${l.incumbentRate?.toLocaleString()}</div>
                             </div>
-                          : <span style={{color:C.gray,fontSize:11}}>New lane</span>}
+                          : <span style={{color:C.stone,fontSize:11}}>New lane</span>}
                       </td>
                       <td style={{background:"#F0FDF4"}}>
                         <div style={{fontWeight:700,color:C.green,fontSize:12}}>{b0?.carrier}</div>
@@ -2665,18 +2665,18 @@ function ResultsPage({ bidSettings }) {
                         <div style={{fontSize:12}}>{b1?.carrier}</div>
                         {b1 && <span className={`badge ${b1.type}`}>{b1.type}</span>}
                       </td>
-                      <td className="mono" style={{color:C.gray}}>{b1 ? `$${b1.rate.toLocaleString()}` : "—"}</td>
+                      <td className="mono" style={{color:C.stone}}>{b1 ? `$${b1.rate.toLocaleString()}` : "—"}</td>
                       <td>
                         <div style={{fontSize:12}}>{b2?.carrier}</div>
                         {b2 && <span className={`badge ${b2.type}`}>{b2.type}</span>}
                       </td>
-                      <td className="mono" style={{color:C.gray}}>{b2 ? `$${b2.rate.toLocaleString()}` : "—"}</td>
+                      <td className="mono" style={{color:C.stone}}>{b2 ? `$${b2.rate.toLocaleString()}` : "—"}</td>
                       <td className="mono" style={{color:C.amber,fontWeight:600}}>{spread}</td>
                       <td>
                         {scenario ? (
                           <div>
-                            <div style={{fontWeight:700,fontSize:12,color:C.purple}}>{l.scenarioAward}</div>
-                            {l.scenarioSecondary && <div style={{fontSize:10,color:C.gray}}>{l.primaryVol} loads + {l.scenarioSecondary} ({l.secondaryVol})</div>}
+                            <div style={{fontWeight:700,fontSize:12,color:C.ash}}>{l.scenarioAward}</div>
+                            {l.scenarioSecondary && <div style={{fontSize:10,color:C.stone}}>{l.primaryVol} loads + {l.scenarioSecondary} ({l.secondaryVol})</div>}
                           </div>
                         ) : (
                           <select style={{fontSize:11,minWidth:160}}
@@ -2696,9 +2696,9 @@ function ResultsPage({ bidSettings }) {
             </table>
           </div>
           {!scenario && (
-            <div style={{padding:"12px 16px",borderTop:`1px solid ${C.grayli}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:12,color:C.gray}}>
-                Est. total award spend: <strong style={{color:C.navy}}>${(totalManualSpend/1000).toFixed(0)}K</strong>
+            <div style={{padding:"12px 16px",borderTop:`1px solid ${C.sand}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:12,color:C.stone}}>
+                Est. total award spend: <strong style={{color:C.black}}>${(totalManualSpend/1000).toFixed(0)}K</strong>
               </div>
               {confirmed
                 ? <div className="alert success" style={{margin:0,padding:"6px 12px"}}>✓ Awards confirmed and sent to admin</div>
@@ -2718,14 +2718,14 @@ function ResultsPage({ bidSettings }) {
                   <div>
                     <div style={{fontWeight:700,fontSize:13}}>{c.name}</div>
                     <div style={{display:"flex",gap:6,marginTop:3}}>
-                      <span className="mono" style={{fontSize:11,color:C.gray}}>{c.scac}</span>
+                      <span className="mono" style={{fontSize:11,color:C.stone}}>{c.scac}</span>
                       <span className={`badge ${c.type}`}>{c.type}</span>
                     </div>
                   </div>
                   <span className="badge awarded">{won} awarded</span>
                 </div>
                 <div className="progress-bar"><div className="progress-fill" style={{width:`${Math.min(100,(won/LANES.length)*100*3)}%`}}/></div>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:C.gray}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:C.stone}}>
                   <span>{c.bids} bids submitted</span>
                   <span>{c.bids>0?((won/Math.max(1,c.bids))*100).toFixed(0):0}% hit rate</span>
                 </div>
@@ -2787,7 +2787,7 @@ function BidPage({ bidSettings, carrierName, addLog }) {
                 const fb = rates[l.id] ? carrierFeedback({...l,bids:l.bids.map(b=>b.carrier===carrierName?{...b,rate:parseFloat(rates[l.id])||b.rate}:b)}, carrierName, bidSettings) : null;
                 return (
                   <tr key={l.id}>
-                    <td className="mono" style={{fontSize:11,color:C.gray}}>{l.id}</td>
+                    <td className="mono" style={{fontSize:11,color:C.stone}}>{l.id}</td>
                     <td><span className={`badge ${l.type.toLowerCase()}`}>{l.type}</span></td>
                     <td>{l.origCity}, {l.origSt}</td>
                     <td>{l.destCity}, {l.destSt}</td>
@@ -2808,7 +2808,7 @@ function BidPage({ bidSettings, carrierName, addLog }) {
                       <td>
                         {fb
                           ? <span style={{fontSize:11,fontWeight:600,color:fb.color}}>{fb.label}</span>
-                          : <span style={{fontSize:11,color:C.gray}}>Enter rate to see feedback</span>}
+                          : <span style={{fontSize:11,color:C.stone}}>Enter rate to see feedback</span>}
                       </td>
                     )}
                   </tr>
@@ -2817,8 +2817,8 @@ function BidPage({ bidSettings, carrierName, addLog }) {
             </tbody>
           </table>
         </div>
-        <div style={{padding:"12px 16px",borderTop:`1px solid ${C.grayli}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontSize:12,color:C.gray}}>{submitted} of {LANES.length} lanes rated</span>
+        <div style={{padding:"12px 16px",borderTop:`1px solid ${C.sand}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:12,color:C.stone}}>{submitted} of {LANES.length} lanes rated</span>
           <button className="btn btn-green" onClick={handleSave}>✓ Save & Submit</button>
         </div>
       </div>
@@ -2835,7 +2835,7 @@ function StandingPage({ bidSettings, carrierName }) {
     <div className="card" style={{textAlign:"center",padding:40}}>
       <div style={{fontSize:32,marginBottom:12}}>🔒</div>
       <div className="page-title" style={{marginBottom:8}}>Feedback Not Enabled</div>
-      <div style={{color:C.gray,fontSize:13}}>The shipper has not enabled competitive feedback for this bid. Submit your rates in the Bid tab.</div>
+      <div style={{color:C.stone,fontSize:13}}>The shipper has not enabled competitive feedback for this bid. Submit your rates in the Bid tab.</div>
     </div>
   );
 
@@ -2866,7 +2866,7 @@ function StandingPage({ bidSettings, carrierName }) {
               const fb = carrierFeedback(l, carrierName, bidSettings);
               return (
                 <tr key={l.id} style={l.myRank===1?{background:C.greenlt}:{}}>
-                  <td className="mono" style={{fontSize:11,color:C.gray}}>{l.id}</td>
+                  <td className="mono" style={{fontSize:11,color:C.stone}}>{l.id}</td>
                   <td>{l.origCity}, {l.origSt}</td>
                   <td>{l.destCity}, {l.destSt}</td>
                   <td style={{fontSize:11}}>{l.mode}</td>
@@ -2922,14 +2922,14 @@ function InvitePage() {
             {invitedCarriers.map(c=>(
               <tr key={c.id}>
                 <td style={{fontWeight:600}}>{c.name}</td>
-                <td className="mono" style={{color:C.gray}}>{c.scac}</td>
+                <td className="mono" style={{color:C.stone}}>{c.scac}</td>
                 <td><span className={`badge ${c.type}`}>{c.type}</span></td>
-                <td style={{fontSize:12,color:C.gray}}>{c.contact}</td>
+                <td style={{fontSize:12,color:C.stone}}>{c.contact}</td>
                 <td>{c.submitted?<span style={{color:C.green,fontWeight:600,fontSize:12}}>✓ Submitted</span>:<span style={{color:C.amber,fontWeight:600,fontSize:12}}>Invited — Pending</span>}</td>
                 <td className="mono">{c.bids||"—"}</td>
                 <td style={{display:"flex",gap:6}}>
                   {!c.submitted && <button className="btn btn-sm btn-outline">Remind</button>}
-                  <button className="btn btn-sm" style={{background:C.redlt,color:C.red,border:"none",cursor:"pointer"}} onClick={()=>handleRevoke(c.contact)}>Revoke</button>
+                  <button className="btn btn-sm" style={{background:C.rustlt,color:C.rust,border:"none",cursor:"pointer"}} onClick={()=>handleRevoke(c.contact)}>Revoke</button>
                 </td>
               </tr>
             ))}
@@ -2939,16 +2939,16 @@ function InvitePage() {
 
       {notInvited.length>0 && (
         <div className="card">
-          <div className="card-header"><div className="card-title" style={{color:C.gray}}>Not Yet Invited ({notInvited.length})</div></div>
+          <div className="card-header"><div className="card-title" style={{color:C.stone}}>Not Yet Invited ({notInvited.length})</div></div>
           <table>
             <thead><tr><th>Carrier / Broker</th><th>SCAC</th><th>Type</th><th>Email</th><th></th></tr></thead>
             <tbody>
               {notInvited.map(c=>(
                 <tr key={c.id}>
-                  <td style={{fontWeight:500,color:C.gray}}>{c.name}</td>
-                  <td className="mono" style={{color:C.gray}}>{c.scac}</td>
+                  <td style={{fontWeight:500,color:C.stone}}>{c.name}</td>
+                  <td className="mono" style={{color:C.stone}}>{c.scac}</td>
                   <td><span className={`badge ${c.type}`}>{c.type}</span></td>
-                  <td style={{fontSize:12,color:C.gray}}>{c.contact}</td>
+                  <td style={{fontSize:12,color:C.stone}}>{c.contact}</td>
                   <td><button className="btn btn-sm btn-primary" onClick={()=>{setInvited(i=>[...i,c.contact]);setSent(true);setTimeout(()=>setSent(false),3000);}}>Invite</button></td>
                 </tr>
               ))}
@@ -2967,7 +2967,7 @@ function InvitePage() {
                 <div className="form-group"><label>SCAC Code</label><input value={form.scac} onChange={e=>setForm(f=>({...f,scac:e.target.value}))} placeholder="e.g. APXF"/></div>
               </div>
               <div className="form-row">
-                <div className="form-group"><label>Contact Email <span style={{color:C.red}}>*</span></label><input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="rates@carrier.com"/></div>
+                <div className="form-group"><label>Contact Email <span style={{color:C.rust}}>*</span></label><input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="rates@carrier.com"/></div>
                 <div className="form-group"><label>Contact Name</label><input value={form.contact} onChange={e=>setForm(f=>({...f,contact:e.target.value}))} placeholder="First Last"/></div>
               </div>
               <div className="alert info" style={{marginTop:4}}>A unique, secure access link will be sent to this email. Only they can use it. No other carrier identities or rates will be visible to them.</div>
@@ -2995,7 +2995,7 @@ function NewRFPPage({ setPage, setBidSettings }) {
     <div className="card" style={{textAlign:"center",padding:40}}>
       <div style={{fontSize:40,marginBottom:12}}>🎉</div>
       <div className="page-title" style={{marginBottom:8}}>RFP Launched!</div>
-      <div style={{color:C.gray,fontSize:13,marginBottom:20}}>Your bid is live. Invite carriers to participate.</div>
+      <div style={{color:C.stone,fontSize:13,marginBottom:20}}>Your bid is live. Invite carriers to participate.</div>
       <button className="btn btn-primary" onClick={()=>setPage("invite")}>Invite Carriers →</button>
     </div>
   );
@@ -3028,8 +3028,8 @@ function NewRFPPage({ setPage, setBidSettings }) {
           <div className="card-title" style={{marginBottom:16}}>2. Upload Lane File</div>
           <div className="upload-zone">
             <div style={{fontSize:32,marginBottom:8}}>📂</div>
-            <div style={{fontSize:13,color:C.gray}}><strong style={{color:C.steel}}>Click to upload</strong> or drag & drop your lane file</div>
-            <div style={{fontSize:11,color:C.gray,marginTop:6}}>Accepts .xlsx · Use the RFPlab template</div>
+            <div style={{fontSize:13,color:C.stone}}><strong style={{color:C.ash}}>Click to upload</strong> or drag & drop your lane file</div>
+            <div style={{fontSize:11,color:C.stone,marginTop:6}}>Accepts .xlsx · Use the RFPlab template</div>
           </div>
           <div style={{marginTop:12,padding:"10px 14px",background:C.greenlt,border:`1px solid ${C.green}`,borderRadius:8,fontSize:12,color:C.green}}>
             ✓ Spindrift_TL_RFP_2026_May_to_Aug.xlsx — 97 lanes detected
@@ -3044,10 +3044,10 @@ function NewRFPPage({ setPage, setBidSettings }) {
       {step===3 && (
         <div className="card">
           <div className="card-title" style={{marginBottom:16}}>3. Carrier Feedback Settings</div>
-          <div className="form-group" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:`1px solid ${C.grayli}`,borderRadius:8,marginBottom:16}}>
+          <div className="form-group" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",border:`1px solid ${C.sand}`,borderRadius:8,marginBottom:16}}>
             <div>
               <div style={{fontWeight:600,fontSize:13}}>Enable competitive feedback for carriers</div>
-              <div style={{fontSize:11,color:C.gray,marginTop:2}}>Carriers see limited information about their bid position — never other carriers' identities or exact rates</div>
+              <div style={{fontSize:11,color:C.stone,marginTop:2}}>Carriers see limited information about their bid position — never other carriers' identities or exact rates</div>
             </div>
             <Toggle checked={settings.feedbackEnabled} onChange={v=>setSettings(s=>({...s,feedbackEnabled:v}))} />
           </div>
@@ -3066,7 +3066,7 @@ function NewRFPPage({ setPage, setBidSettings }) {
                   <input type="radio" readOnly checked={settings.feedbackType===opt.key}/>
                   <div>
                     <div style={{fontWeight:600,fontSize:13}}>{opt.title}</div>
-                    <div style={{fontSize:11,color:C.gray,marginTop:2}}>{opt.desc}</div>
+                    <div style={{fontSize:11,color:C.stone,marginTop:2}}>{opt.desc}</div>
                   </div>
                 </div>
               ))}
@@ -3094,15 +3094,15 @@ function NewRFPPage({ setPage, setBidSettings }) {
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <input type="range" min={0} max={100} value={settings.assetVsBrokerSplit}
                 onChange={e=>setSettings(s=>({...s,assetVsBrokerSplit:parseInt(e.target.value)}))} style={{width:180,border:"none",padding:0}}/>
-              <span style={{fontSize:13,fontWeight:600,color:C.purple}}>{settings.assetVsBrokerSplit}% asset / {100-settings.assetVsBrokerSplit}% broker</span>
+              <span style={{fontSize:13,fontWeight:600,color:C.ash}}>{settings.assetVsBrokerSplit}% asset / {100-settings.assetVsBrokerSplit}% broker</span>
             </div>
           </div>
           <div className="form-group"><label>FSC treatment</label><select><option>Not included — linehaul only</option><option>Included in rate</option></select></div>
           <div className="form-group"><label>Carrier notes</label><textarea rows={2} defaultValue="All rates are per load, flat linehaul. No accessorials. May–Aug 2026 contract." /></div>
 
-          <div style={{background:C.offwhite,border:`1px solid ${C.grayli}`,borderRadius:8,padding:14,marginTop:8,fontSize:12,color:C.gray}}>
-            <div style={{fontWeight:700,color:C.text,marginBottom:8}}>Summary</div>
-            <div>Feedback: <strong style={{color:settings.feedbackEnabled?C.green:C.gray}}>{settings.feedbackEnabled?`Enabled — ${settings.feedbackType}`:"Disabled (blind bid)"}</strong></div>
+          <div style={{background:C.parchment,border:`1px solid ${C.sand}`,borderRadius:8,padding:14,marginTop:8,fontSize:12,color:C.stone}}>
+            <div style={{fontWeight:700,color:C.black,marginBottom:8}}>Summary</div>
+            <div>Feedback: <strong style={{color:settings.feedbackEnabled?C.green:C.stone}}>{settings.feedbackEnabled?`Enabled — ${settings.feedbackType}`:"Disabled (blind bid)"}</strong></div>
             <div>Max carriers/lane: <strong>{settings.maxCarriersPerLane}</strong></div>
             <div>Scenario split target: <strong>{settings.assetVsBrokerSplit}% asset / {100-settings.assetVsBrokerSplit}% broker</strong></div>
           </div>
@@ -4928,7 +4928,7 @@ function PlaceholderPage({ title, sub }) {
     <div className="card" style={{textAlign:"center",padding:60}}>
       <div style={{fontSize:32,marginBottom:12}}>🚧</div>
       <div className="page-title" style={{marginBottom:6}}>{title}</div>
-      <div style={{color:C.gray,fontSize:13}}>{sub||"Coming in next build"}</div>
+      <div style={{color:C.stone,fontSize:13}}>{sub||"Coming in next build"}</div>
     </div>
   );
 }
@@ -4979,8 +4979,8 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
     const map = {
       draft:   {bg:C.amberlt, color:C.amber,  label:"Draft"},
       active:  {bg:C.greenlt, color:C.green,  label:"Active"},
-      awarded: {bg:C.ice,     color:C.steel,  label:"Awarded"},
-      closed:  {bg:C.offwhite,color:C.gray,   label:"Closed"},
+      awarded: {bg:C.greenlt,     color:C.ash,  label:"Awarded"},
+      closed:  {bg:C.parchment,color:C.stone,   label:"Closed"},
     };
     const s = map[status] || map.draft;
     return <span style={{background:s.bg,color:s.color,padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700}}>{s.label}</span>;
@@ -5011,10 +5011,10 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
       {tab === "drafts" && (
         <div>
           {drafts.length === 0
-            ? <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.grayli}`}}>
+            ? <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.sand}`}}>
                 <div style={{fontSize:32,marginBottom:10}}>📝</div>
-                <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>No drafts saved</div>
-                <div style={{fontSize:12,color:C.gray,marginBottom:16}}>Start building an RFP and click "Save Draft" to pick up where you left off.</div>
+                <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No drafts saved</div>
+                <div style={{fontSize:12,color:C.stone,marginBottom:16}}>Start building an RFP and click "Save Draft" to pick up where you left off.</div>
                 <button className="btn btn-primary" onClick={() => setPage("new_rfp")}>Start New RFP →</button>
               </div>
             : drafts.map(draft => {
@@ -5032,27 +5032,27 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
                   <div key={draft.id} className="card" style={{marginBottom:10}}>
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}>
                       <div>
-                        <div style={{fontWeight:700,fontSize:14,color:C.navy}}>{draft.name || "Untitled RFP"}</div>
-                        <div style={{fontSize:11,color:C.gray,marginTop:3}}>
+                        <div style={{fontWeight:700,fontSize:14,color:C.black}}>{draft.name || "Untitled RFP"}</div>
+                        <div style={{fontSize:11,color:C.stone,marginTop:3}}>
                           Step {draft.step} of 10 — {WIZ_STEP_GROUPS.flatMap(g=>g.steps).find(s=>s.id===draft.step)?.label}
-                          <span style={{margin:"0 6px",color:C.grayli}}>·</span>
+                          <span style={{margin:"0 6px",color:C.sand}}>·</span>
                           Last saved {ago}
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,alignItems:"center"}}>
                         <span style={{background:C.amberlt,color:C.amber,padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700}}>Draft</span>
-                        <button className="btn btn-ghost btn-sm" style={{color:C.red,fontSize:11}} onClick={() => deleteDraft(draft.id)}>✕ Delete</button>
+                        <button className="btn btn-ghost btn-sm" style={{color:C.rust,fontSize:11}} onClick={() => deleteDraft(draft.id)}>✕ Delete</button>
                       </div>
                     </div>
 
                     {/* Progress bar */}
                     <div style={{marginBottom:10}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                        <span style={{fontSize:10,color:C.gray}}>Progress</span>
-                        <span style={{fontSize:10,fontWeight:700,color:C.steel}}>{draft.pct}%</span>
+                        <span style={{fontSize:10,color:C.stone}}>Progress</span>
+                        <span style={{fontSize:10,fontWeight:700,color:C.ash}}>{draft.pct}%</span>
                       </div>
-                      <div style={{height:6,background:C.grayli,borderRadius:3,overflow:"hidden"}}>
-                        <div style={{height:6,background:C.sky,borderRadius:3,width:`${draft.pct}%`,transition:"width .4s"}}/>
+                      <div style={{height:6,background:C.sand,borderRadius:3,overflow:"hidden"}}>
+                        <div style={{height:6,background:C.green,borderRadius:3,width:`${draft.pct}%`,transition:"width .4s"}}/>
                       </div>
                     </div>
 
@@ -5063,9 +5063,9 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
                         const current = s.id === draft.step;
                         return (
                           <span key={s.id} style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
-                            background: done?C.greenlt : current?C.ice : C.offwhite,
-                            color: done?C.green : current?C.steel : C.gray,
-                            border: `1px solid ${done?C.green:current?C.sky:C.grayli}`}}>
+                            background: done?C.greenlt : current?C.greenlt : C.parchment,
+                            color: done?C.green : current?C.ash : C.stone,
+                            border: `1px solid ${done?C.green:current?C.green:C.sand}`}}>
                             {done?"✓ ":""}{s.label}
                           </span>
                         );
@@ -5076,7 +5076,7 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
                       <button className="btn btn-primary btn-sm" onClick={() => setPage("new_rfp")}>
                         ✏️ Continue Building →
                       </button>
-                      <span style={{fontSize:11,color:C.gray,alignSelf:"center"}}>
+                      <span style={{fontSize:11,color:C.stone,alignSelf:"center"}}>
                         Saved {fmtDateTime(draft.savedAt)}
                       </span>
                     </div>
@@ -5099,7 +5099,7 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
                   return true;
                 });
                 if (filtered.length === 0) return (
-                  <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.grayli}`}}>
+                  <div className="card" style={{textAlign:"center",padding:"48px 20px",border:`2px dashed ${C.sand}`}}>
                     <div style={{fontSize:32,marginBottom:10}}>{tab==="active"?"📋":tab==="awarded"?"🏆":"📦"}</div>
                     <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No {tab} RFPs yet</div>
                     <div style={{fontSize:12,color:C.stone,marginBottom:16}}>
@@ -5185,7 +5185,7 @@ function AdminUserManagement() {
 
   const rolePillStyle = (r) => ({
     display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:10, fontWeight:700,
-    background: r==='admin' ? C.navy : r==='shipper' ? C.green : C.amber,
+    background: r==='admin' ? C.black : r==='shipper' ? C.green : C.amber,
     color: 'white'
   });
 
@@ -5220,11 +5220,11 @@ function AdminUserManagement() {
 
       <div className="card" style={{padding:0,overflow:'hidden'}}>
         {loading
-          ? <div style={{padding:40,textAlign:'center',color:C.gray,fontSize:13}}>Loading users…</div>
+          ? <div style={{padding:40,textAlign:'center',color:C.stone,fontSize:13}}>Loading users…</div>
           : filtered.length === 0
-            ? <div style={{padding:40,textAlign:'center',color:C.gray,fontSize:13}}>
+            ? <div style={{padding:40,textAlign:'center',color:C.stone,fontSize:13}}>
                 No {filter === 'all' ? '' : filter} users yet.{' '}
-                <span style={{color:C.steel,cursor:'pointer'}} onClick={() => setModal(true)}>Invite one →</span>
+                <span style={{color:C.ash,cursor:'pointer'}} onClick={() => setModal(true)}>Invite one →</span>
               </div>
             : <table>
                 <thead><tr>
@@ -5234,10 +5234,10 @@ function AdminUserManagement() {
                   {filtered.map(u => (
                     <tr key={u.id}>
                       <td style={{fontWeight:600}}>{u.full_name || '—'}</td>
-                      <td style={{color:C.gray,fontSize:12}}>{u.email}</td>
+                      <td style={{color:C.stone,fontSize:12}}>{u.email}</td>
                       <td>{u.company || '—'}</td>
                       <td><span style={rolePillStyle(u.role)}>{u.role}</span></td>
-                      <td style={{color:C.gray,fontSize:11}}>{fmtDateShort(u.created_at)}</td>
+                      <td style={{color:C.stone,fontSize:11}}>{fmtDateShort(u.created_at)}</td>
                       <td>
                         <select
                           value={u.role}
@@ -5266,7 +5266,7 @@ function AdminUserManagement() {
               <div className="alert info" style={{marginBottom:14}}>
                 The user will receive an email with a secure link to create their password and access their portal. Their role is set by you — they cannot change it.
               </div>
-              {err && <div className="alert" style={{background:C.redlt,color:C.red,borderLeft:`3px solid ${C.red}`,marginBottom:12}}>{err}</div>}
+              {err && <div className="alert" style={{background:C.rustlt,color:C.rust,borderLeft:`3px solid ${C.rust}`,marginBottom:12}}>{err}</div>}
               {sent && <div className="alert" style={{background:C.greenlt,color:C.green,borderLeft:`3px solid ${C.green}`,marginBottom:12}}>✓ Invite sent! They'll receive an email shortly.</div>}
 
               <div className="form-group">
@@ -5274,9 +5274,9 @@ function AdminUserManagement() {
                 <div style={{display:'flex',gap:8,marginTop:4}}>
                   {[['shipper','🏢 Shipper'],['carrier','🚛 Carrier / Broker'],['admin','⚙️ Admin']].map(([v,l]) => (
                     <div key={v} onClick={() => setForm(f=>({...f,role:v}))}
-                      style={{flex:1,padding:'9px 8px',border:`2px solid ${form.role===v?C.sky:C.grayli}`,
+                      style={{flex:1,padding:'9px 8px',border:`2px solid ${form.role===v?C.green:C.sand}`,
                         borderRadius:7,textAlign:'center',cursor:'pointer',fontSize:11,fontWeight:form.role===v?700:500,
-                        background:form.role===v?C.ice:'white'}}>
+                        background:form.role===v?C.greenlt:'white'}}>
                       {l}
                     </div>
                   ))}
@@ -5296,8 +5296,8 @@ function AdminUserManagement() {
                 <label>Email Address</label>
                 <input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="user@company.com"/>
               </div>
-              <div style={{background:C.offwhite,border:`1px solid ${C.grayli}`,borderRadius:8,padding:'10px 14px',fontSize:12,color:C.gray,marginTop:4}}>
-                <strong style={{color:C.text}}>What happens next:</strong> They'll get an email to set their password. When they click the link, they land on the RFPlab login page with their role pre-set as <strong>{form.role}</strong>. They cannot self-upgrade to admin.
+              <div style={{background:C.parchment,border:`1px solid ${C.sand}`,borderRadius:8,padding:'10px 14px',fontSize:12,color:C.stone,marginTop:4}}>
+                <strong style={{color:C.black}}>What happens next:</strong> They'll get an email to set their password. When they click the link, they land on the RFPlab login page with their role pre-set as <strong>{form.role}</strong>. They cannot self-upgrade to admin.
               </div>
             </div>
             <div className="modal-footer">
@@ -5337,7 +5337,7 @@ function AdminDashboard({ setPage }) {
 
   const rolePill = (r) => ({
     display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:10, fontWeight:700,
-    background: r==='admin'?C.navy : r==='shipper'?C.green : C.amber, color:'white'
+    background: r==='admin'?C.black : r==='shipper'?C.green : C.amber, color:'white'
   });
 
   return (
@@ -5352,13 +5352,13 @@ function AdminDashboard({ setPage }) {
 
       {/* Procurement mode cards */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-        <div style={{background:`linear-gradient(135deg,${C.navy},${C.slate})`,borderRadius:10,padding:"16px 18px",cursor:"pointer"}} onClick={()=>setPage("new_rfp")}>
+        <div style={{background:`linear-gradient(135deg,${C.black},${C.ink})`,borderRadius:10,padding:"16px 18px",cursor:"pointer"}} onClick={()=>setPage("new_rfp")}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
             <div style={{width:36,height:36,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📋</div>
             <div><div style={{fontWeight:700,fontSize:13,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier</div></div>
           </div>
           <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.6,marginBottom:10}}>Build and manage structured bids for shippers — lane files, carrier invites, award modeling.</div>
-          <div style={{fontSize:12,fontWeight:600,color:C.sky}}>Launch RFP Wizard →</div>
+          <div style={{fontSize:12,fontWeight:600,color:C.green}}>Launch RFP Wizard →</div>
         </div>
         <div style={{background:`linear-gradient(135deg,#7C3AED,#5B21B6)`,borderRadius:10,padding:"16px 18px",cursor:"pointer"}} onClick={()=>setPage("spot")}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
@@ -5385,20 +5385,20 @@ function AdminDashboard({ setPage }) {
           <button className="btn btn-sm btn-outline" onClick={()=>setPage("users")}>View all →</button>
         </div>
         {loadingStats
-          ? <div style={{padding:"20px 0",textAlign:"center",color:C.gray,fontSize:12}}>Loading…</div>
+          ? <div style={{padding:"20px 0",textAlign:"center",color:C.stone,fontSize:12}}>Loading…</div>
           : recentUsers.length === 0
-            ? <div style={{padding:"20px 0",textAlign:"center",color:C.gray,fontSize:12}}>
-                No users yet. <span style={{color:C.steel,cursor:"pointer"}} onClick={()=>setPage("users")}>Invite your first shipper →</span>
+            ? <div style={{padding:"20px 0",textAlign:"center",color:C.stone,fontSize:12}}>
+                No users yet. <span style={{color:C.ash,cursor:"pointer"}} onClick={()=>setPage("users")}>Invite your first shipper →</span>
               </div>
             : recentUsers.map(u=>(
-                <div key={u.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.grayli}`}}>
+                <div key={u.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.sand}`}}>
                   <div>
                     <div style={{fontWeight:600,fontSize:13}}>{u.full_name || u.email}</div>
-                    <div style={{fontSize:11,color:C.gray}}>{u.company || u.email}</div>
+                    <div style={{fontSize:11,color:C.stone}}>{u.company || u.email}</div>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={rolePill(u.role)}>{u.role}</span>
-                    <span style={{fontSize:11,color:C.gray}}>{fmtDateShort(u.created_at)}</span>
+                    <span style={{fontSize:11,color:C.stone}}>{fmtDateShort(u.created_at)}</span>
                   </div>
                 </div>
               ))}
@@ -5422,7 +5422,7 @@ function ShipperDashboard({ setPage, dbProfile }) {
           </div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-          <div style={{background:`linear-gradient(135deg,${C.navy},${C.slate})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("new_rfp")}>
+          <div style={{background:`linear-gradient(135deg,${C.black},${C.ink})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("new_rfp")}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
               <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📋</div>
               <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier bid</div></div>
@@ -5436,13 +5436,13 @@ function ShipperDashboard({ setPage, dbProfile }) {
               <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Spot Load</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Single load · Timed quote window</div></div>
             </div>
             <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a single load and award to the best quote in real time. Quotes close automatically when your window expires.</div>
-            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.purple,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post a Load →</button>
+            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.ash,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post a Load →</button>
           </div>
         </div>
-        <div className="card" style={{textAlign:"center",padding:"36px 20px",border:`2px dashed ${C.grayli}`}}>
+        <div className="card" style={{textAlign:"center",padding:"36px 20px",border:`2px dashed ${C.sand}`}}>
           <div style={{fontSize:32,marginBottom:12}}>📋</div>
-          <div style={{fontWeight:600,fontSize:14,color:C.navy,marginBottom:6}}>No RFPs yet</div>
-          <div style={{fontSize:12,color:C.gray,marginBottom:16}}>Create your first RFP to start inviting carriers and collecting rates.</div>
+          <div style={{fontWeight:600,fontSize:14,color:C.black,marginBottom:6}}>No RFPs yet</div>
+          <div style={{fontSize:12,color:C.stone,marginBottom:16}}>Create your first RFP to start inviting carriers and collecting rates.</div>
           <button className="btn btn-primary" onClick={()=>setPage("new_rfp")}>🚀 Build Your First RFP →</button>
         </div>
       </div>
@@ -5456,7 +5456,7 @@ function ShipperDashboard({ setPage, dbProfile }) {
         <div><div className="page-title">Procurement Hub</div><div className="page-sub">Spindrift Beverages · Demo mode</div></div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-        <div style={{background:`linear-gradient(135deg,${C.navy},${C.slate})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("rfps")}>
+        <div style={{background:`linear-gradient(135deg,${C.black},${C.ink})`,borderRadius:10,padding:"18px 20px",cursor:"pointer"}} onClick={()=>setPage("rfps")}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <div style={{width:40,height:40,background:"rgba(255,255,255,.1)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📋</div>
             <div><div style={{fontWeight:700,fontSize:14,color:"white"}}>Contracted RFP</div><div style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Multi-lane · Multi-carrier bid</div></div>
@@ -5475,7 +5475,7 @@ function ShipperDashboard({ setPage, dbProfile }) {
           <div style={{fontSize:11,color:"rgba(255,255,255,.6)",lineHeight:1.7,marginBottom:12}}>Post a load, set a timed window, award to the best quote in real time.</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-sm" style={{background:"rgba(255,255,255,.1)",color:"white",border:"1px solid rgba(255,255,255,.2)"}} onClick={e=>{e.stopPropagation();setPage("spot");}}>Spot Board</button>
-            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.purple,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post Load</button>
+            <button className="btn btn-sm" style={{background:"rgba(255,255,255,.9)",color:C.ash,border:"none",fontWeight:700}} onClick={e=>{e.stopPropagation();setPage("spot");}}>⚡ Post Load</button>
           </div>
         </div>
       </div>
@@ -5511,19 +5511,19 @@ function CarrierDashboard({ setPage, bidSettings, dbProfile }) {
     <div>
       <div className="section-header"><div><div className="page-title">{displayName} — Carrier Portal</div><div className="page-sub">Contracted RFP + Spot Load Board</div></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-        <div className="card-sm" style={{cursor:"pointer",borderLeft:`4px solid ${C.steel}`}} onClick={()=>setPage("event")}>
+        <div className="card-sm" style={{cursor:"pointer",borderLeft:`4px solid ${C.ash}`}} onClick={()=>setPage("event")}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>📋 Spindrift RFP — May–Aug 2026</div>
-          <div style={{fontSize:11,color:C.gray,marginBottom:8}}>97 lanes · Deadline Apr 30, 2026</div>
+          <div style={{fontSize:11,color:C.stone,marginBottom:8}}>97 lanes · Deadline Apr 30, 2026</div>
           <div style={{display:"flex",gap:8}}>
             <button className="btn btn-sm btn-outline" onClick={e=>{e.stopPropagation();setPage("event");}}>View Bid Details</button>
             <button className="btn btn-sm btn-primary" onClick={e=>{e.stopPropagation();setPage("bid");}}>💲 Submit Rates</button>
           </div>
         </div>
-        <div className="card-sm" style={{cursor:"pointer",borderLeft:`4px solid ${C.purple}`}} onClick={()=>setPage("spot")}>
+        <div className="card-sm" style={{cursor:"pointer",borderLeft:`4px solid ${C.ash}`}} onClick={()=>setPage("spot")}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>⚡ Spot Load Board</div>
-          <div style={{fontSize:11,color:C.gray,marginBottom:8}}><span className="live-dot" style={{display:"inline-block",marginRight:4}}/>2 loads live · Blind auction</div>
+          <div style={{fontSize:11,color:C.stone,marginBottom:8}}><span className="live-dot" style={{display:"inline-block",marginRight:4}}/>2 loads live · Blind auction</div>
           <div style={{display:"flex",gap:8}}>
-            <button className="btn btn-sm" style={{background:C.purplt,color:C.purple,border:`1px solid #C4B5FD`}} onClick={e=>{e.stopPropagation();setPage("spot");}}>View Spot Board →</button>
+            <button className="btn btn-sm" style={{background:C.greenlt,color:C.ash,border:`1px solid #C4B5FD`}} onClick={e=>{e.stopPropagation();setPage("spot");}}>View Spot Board →</button>
           </div>
         </div>
       </div>
@@ -5647,16 +5647,16 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
           <div className="topbar">
             <div style={{display:"flex",alignItems:"center",gap:14}}>
               <RFPLabLogo dark={false} size="sm"/>
-              <div style={{width:"1px",height:28,background:C.grayli}}/>
+              <div style={{width:"1px",height:28,background:C.sand}}/>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span className={`role-pill ${role}`}>{role}</span>
-                <span style={{fontSize:13,color:C.gray}}>{roleLabels[role]}</span>
+                <span style={{fontSize:13,color:C.stone}}>{roleLabels[role]}</span>
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               {!isLocked && <RoleSwitcher role={role} setRole={handleSetRole} setPage={setPage}/>}
               {dbUser && (
-                <button onClick={handleSignOut} style={{background:"none",border:`1px solid ${C.grayli}`,borderRadius:6,padding:"5px 12px",fontSize:11,color:C.gray,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+                <button onClick={handleSignOut} style={{background:"none",border:`1px solid ${C.sand}`,borderRadius:6,padding:"5px 12px",fontSize:11,color:C.stone,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
                   Sign out
                 </button>
               )}
