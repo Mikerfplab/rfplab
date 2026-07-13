@@ -5556,8 +5556,8 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
 
   const isLocked = dbProfile && dbProfile.role !== 'admin';
   const displayName = dbProfile?.company || dbProfile?.full_name ||
-    (role === "carrier" ? "Carrier" : role === "shipper" ? "Shipper" : "RFPlab Admin");
-
+(role === "carrier" ? "Carrier" : role === "shipper" ? "Shipper" : "RFPlab Admin");
+  
   const handleSignOut = async () => {
     const { signOut } = await import('./supabase.js');
     await signOut();
