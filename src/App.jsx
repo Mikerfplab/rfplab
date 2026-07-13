@@ -2051,99 +2051,13 @@ function SpotBoard({ role }) {
 // ─── END SPOT LOAD SECTION ────────────────────────────────────────────────────
 // Black block with spaced R F P + vertical LAB alongside
 function RFPLabLogo({ dark = false, size = "md" }) {
-  const scales = { sm: 0.42, md: 0.56, lg: 1 };
-  const sc = scales[size] || 0.56;
-  // Total canvas: 510 wide x 160 tall
-  // Block: 0-420 x 160
-  // LAB column: 428-510 x 160 (white/transparent bg, rotated black text)
-  const blockFill = dark ? "#1A3028" : "#0A1A14";
-  const rfpFill   = dark ? "#00C853" : "#F8FAF9"; // green on dark, white on light
-  const labBg     = "transparent";
-  const labFill   = dark ? "#E8F2EE" : "#0A1A14";
-
-  // Pre-computed rect sets for R, F, P as stroke-free filled rects
-  // All in a 420x160 viewBox block, letters ~28-30px stroke weight, wide condensed
-  const R = [
-    // Vertical stem
-    [28, 24, 18, 112],
-    // Top horizontal
-    [28, 24, 64, 18],
-    // Right side of bowl top
-    [74, 24, 18, 46],
-    // Mid bar
-    [28, 66, 58, 16],
-    // Diagonal leg - approximated as two rects
-    [60, 82, 16, 54],
-    [76, 108, 22, 28],
-  ];
-  const F = [
-    // Vertical stem
-    [112, 24, 18, 112],
-    // Top bar
-    [112, 24, 62, 18],
-    // Mid bar
-    [112, 68, 50, 16],
-  ];
-  const P = [
-    // Vertical stem
-    [198, 24, 18, 112],
-    // Top bar
-    [198, 24, 62, 18],
-    // Right side of bowl
-    [242, 24, 18, 46],
-    // Close bowl at bottom
-    [198, 66, 62, 18],
-  ];
-
-  // LAB — drawn rotated 90deg CW inside column 428–510
-  // In rotated space: x axis = vertical, y axis = horizontal
-  // Column center: cx=469, cy=80
-  // Letters drawn in rotated coordinate system, then transformed
-  // Total width of LAB in rotated space: ~156px, centered
-  const labLetters = (fill) => (
-    <g transform="translate(469,80) rotate(90)" fill={fill}>
-      {/* L — starts at x=-76 */}
-      <rect x={-76} y={-28} width={11} height={56}/>
-      <rect x={-76} y={18} width={33} height={11}/>
-      {/* A — starts at x=-32 */}
-      <rect x={-32} y={-28} width={11} height={56}/>
-      <rect x={3} y={-28} width={11} height={56}/>
-      <rect x={-32} y={-28} width={46} height={11}/>
-      <rect x={-32} y={2} width={46} height={10}/>
-      {/* B — starts at x=24 */}
-      <rect x={24} y={-28} width={11} height={56}/>
-      <rect x={24} y={-28} width={34} height={11}/>
-      <rect x={46} y={-28} width={12} height={30}/>
-      <rect x={24} y={0} width={34} height={10}/>
-      <rect x={46} y={10} width={12} height={30}/>
-      <rect x={24} y={18} width={34} height={11}/>
-    </g>
-  );
-
+  const heights = { sm: 32, md: 44, lg: 80 };
   return (
-    <svg
-      width={510 * sc} height={160 * sc}
-      viewBox="0 0 510 160"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img" aria-label="RFPlab"
-      style={{display:"block",flexShrink:0}}
-    >
-      {/* Black/teal block */}
-      <rect x={0} y={0} width={420} height={160} fill={blockFill}/>
-
-      {/* R */}
-      {R.map(([x,y,w,h],i) => <rect key={`r${i}`} x={x} y={y} width={w} height={h} fill={rfpFill}/>)}
-      {/* F */}
-      {F.map(([x,y,w,h],i) => <rect key={`f${i}`} x={x} y={y} width={w} height={h} fill={rfpFill}/>)}
-      {/* P */}
-      {P.map(([x,y,w,h],i) => <rect key={`p${i}`} x={x} y={y} width={w} height={h} fill={rfpFill}/>)}
-
-      {/* LAB column — background */}
-      <rect x={428} y={0} width={82} height={160} fill={labBg}/>
-
-      {/* LAB letters rotated */}
-      {labLetters(labFill)}
-    </svg>
+    <img
+      src="/Final Image.png"
+      alt="RFPlab"
+      style={{ height: heights[size], width: "auto", display: "block", flexShrink: 0 }}
+    />
   );
 }
 
