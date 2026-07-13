@@ -12,32 +12,12 @@ const C = {
 }
 
 function Logo() {
-  const sc=0.38, blockFill="#0A1A14", rfpFill="#00C853", labFill="#0A1A14";
-  const R=[[28,24,18,112],[28,24,64,18],[74,24,18,46],[28,66,58,16],[60,82,16,54],[76,108,22,28]];
-  const F=[[112,24,18,112],[112,24,62,18],[112,68,50,16]];
-  const P=[[198,24,18,112],[198,24,62,18],[242,24,18,46],[198,66,62,18]];
   return (
-    <svg width={510*sc} height={160*sc} viewBox="0 0 510 160"
-      xmlns="http://www.w3.org/2000/svg" style={{display:"block",margin:"0 auto 12px"}}>
-      <rect x={0} y={0} width={420} height={160} fill={blockFill}/>
-      {R.map(([x,y,w,h],i)=><rect key={i} x={x} y={y} width={w} height={h} fill={rfpFill}/>)}
-      {F.map(([x,y,w,h],i)=><rect key={i} x={x} y={y} width={w} height={h} fill={rfpFill}/>)}
-      {P.map(([x,y,w,h],i)=><rect key={i} x={x} y={y} width={w} height={h} fill={rfpFill}/>)}
-      <g transform="translate(469,80) rotate(90)" fill={labFill}>
-        <rect x={-76} y={-28} width={11} height={56}/>
-        <rect x={-76} y={18} width={33} height={11}/>
-        <rect x={-32} y={-28} width={11} height={56}/>
-        <rect x={3} y={-28} width={11} height={56}/>
-        <rect x={-32} y={-28} width={46} height={11}/>
-        <rect x={-32} y={2} width={46} height={10}/>
-        <rect x={24} y={-28} width={11} height={56}/>
-        <rect x={24} y={-28} width={34} height={11}/>
-        <rect x={46} y={-28} width={12} height={30}/>
-        <rect x={24} y={0} width={34} height={10}/>
-        <rect x={46} y={10} width={12} height={30}/>
-        <rect x={24} y={18} width={34} height={11}/>
-      </g>
-    </svg>
+    <img
+      src="/Final Image.png"
+      alt="RFPlab"
+      style={{ height: 56, width: "auto", display: "block", margin: "0 auto 14px" }}
+    />
   );
 }
 
