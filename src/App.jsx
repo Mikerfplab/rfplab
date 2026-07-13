@@ -2109,23 +2109,23 @@ function SpotQuoteBar({ q, idx, isAwarded, isMe, blind=false }) {
   );
 }
 
-function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
+function SpotLoadModal({ load, role, onClose, onAward, onQuote, carrierName="" }) {
   const [tab, setTab] = useState("details");
   const [myQuote, setMyQuote] = useState("");
-  const [quoteSubmitted, setQuoteSubmitted] = useState(load.quotes.some(q=>q.carrier===displayName));
+  const [quoteSubmitted, setQuoteSubmitted] = useState(load.quotes.some(q=>q.carrier===carrierName));
   const [submitting, setSubmitting] = useState(false);
   const [awardPick, setAwardPick] = useState(null);
   const [showInsurance, setShowInsurance] = useState(false);
   const isOpen = load.windowEnds > Date.now() && !load.awarded && load.status!=="closed";
   const sorted = [...load.quotes].sort((a,b)=>a.amount-b.amount);
   const low = sorted.length ? sorted[0].amount : null;
-  const myQ = load.quotes.find(q=>q.carrier===displayName);
+  const myQ = load.quotes.find(q=>q.carrier===carrierName);
 
   const handleSubmit = () => {
     if (!myQuote||isNaN(parseFloat(myQuote))) return;
     setSubmitting(true);
     setTimeout(()=>{
-      onQuote(load.id,{id:Date.now(),carrier:displayName,scac:"ROAR",type:"broker",amount:parseFloat(myQuote),ts:Date.now()});
+      onQuote(load.id,{id:Date.now(),carrier:carrierName,scac:"",type:"broker",amount:parseFloat(myQuote),ts:Date.now()});
       setQuoteSubmitted(true); setSubmitting(false); setTab("quotes");
     },800);
   };
@@ -2185,7 +2185,7 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
                 {low&&<div style={{fontSize:12,color:C.stone}}>Low: <strong className="mono" style={{color:C.green}}>${low.toLocaleString()}</strong></div>}
               </div>
               {sorted.length===0&&<div style={{textAlign:"center",padding:"28px 0",color:C.stone,fontSize:12}}>No quotes yet.</div>}
-              {sorted.map((q,i)=><SpotQuoteBar key={q.id} q={q} idx={i} isAwarded={!!load.awarded} isMe={q.carrier===displayName} blind={role==="carrier"&&q.carrier!==displayName}/>)}
+              {sorted.map((q,i)=><SpotQuoteBar key={q.id} q={q} idx={i} isAwarded={!!load.awarded} isMe={q.carrier===carrierName} blind={role==="carrier"&&q.carrier!==carrierName}/>)}
             </div>
           )}
           {tab==="submit"&&role==="carrier"&&(
@@ -2331,7 +2331,7 @@ function SpotPostModal({ onClose, onPost }) {
 function SpotLoadCard({ load, role, onClick }) {
   const sorted = [...load.quotes].sort((a,b)=>a.amount-b.amount);
   const low = sorted.length ? sorted[0].amount : null;
-  const myQ = load.quotes.find(q=>q.carrier===displayName);
+  const myQ = load.quotes.find(q=>q.carrier===carrierName);
   return (
     <div className={`load-card-spot${load.awarded?" awarded":load.status==="closed"?" closed-s":""}`} onClick={onClick}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}>
@@ -2399,7 +2399,8 @@ function SpotBoard({ role, dbProfile }) {
   const live=loads.filter(l=>l.windowEnds>Date.now()&&!l.awarded&&l.status!=="closed");
   const awarded=loads.filter(l=>l.awarded);
   const totalQuotes=loads.reduce((s,l)=>s+l.quotes.length,0);
-  const myQuotes=loads.reduce((s,l)=>s+l.quotes.filter(q=>q.carrier===(dbProfile?.company||dbProfile?.full_name||"")).length,0);
+  const myCarrierName = dbProfile?.company||dbProfile?.full_name||"";
+  const myQuotes=loads.reduce((s,l)=>s+l.quotes.filter(q=>q.carrier===myCarrierName).length,0);
 
   const filtered=loads.filter(l=>{
     if(filter==="live")return l.windowEnds>Date.now()&&!l.awarded&&l.status!=="closed";
@@ -2430,7 +2431,7 @@ function SpotBoard({ role, dbProfile }) {
       </div>
       {filtered.map(load=><SpotLoadCard key={load.id} load={load} role={role} onClick={()=>setSelected(load)}/>)}
       {filtered.length===0&&<div className="card" style={{textAlign:"center",padding:"36px",color:C.stone,fontSize:12}}>No loads in this category.</div>}
-      {selected&&<SpotLoadModal load={selected} role={role} onClose={()=>setSelected(null)} onAward={handleAward} onQuote={handleQuote}/>}
+      {selected&&<SpotLoadModal load={selected} role={role} onClose={()=>setSelected(null)} onAward={handleAward} onQuote={handleQuote} carrierName={dbProfile?.company||dbProfile?.full_name||""}/>}
       {showPost&&<SpotPostModal onClose={()=>setShowPost(false)} onPost={handlePost}/>}
     </div>
   );
@@ -2517,7 +2518,7 @@ function Sidebar({ role, page, setPage }) {
       <div className="sidebar-user">
         <div className="sidebar-role">{role}</div>
         <div style={{fontWeight:600,color:"rgba(255,255,255,0.75)",fontSize:12}}>
-          {role==="admin"?"RFPlab Admin":role==="shipper"?"Spindrift Beverages":displayName}
+          {dbProfile?.company||dbProfile?.full_name||role}
         </div>
         <div style={{fontSize:11,marginTop:2}}>{role==="admin"?"admin@rfplab.com":role==="shipper"?"procurement@spindrift.com":"rates@roar.com"}</div>
       </div>
@@ -3123,7 +3124,7 @@ function NewRFPPage({ setPage, setBidSettings }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const RISK_CARRIERS = [
-  { id:1, name:displayName, scac:"ROAR", type:"broker", dot:"1234567", mc:"MC-987654",
+  { id:1, name:"Your Company (Demo)", scac:"DEMO", type:"broker", dot:"1234567", mc:"MC-987654",
     status:"approved", relationship:"Preferred", since:"2021-03", totalLoads:842, totalSpend:1240000,
     otd:94.2, acceptance:96.8, claimRatio:0.3, claims:3,
     contacts:[
@@ -5505,11 +5506,11 @@ function ShipperDashboard({ setPage, dbProfile }) {
 
 
 function CarrierDashboard({ setPage, bidSettings, dbProfile }) {
-  const myLanes = LANES.filter(l=>l.bids.some(b=>b.carrier===displayName));
-  const r1 = myLanes.filter(l=>l.bids[0].carrier===displayName).length;
+  const myLanes = LANES.filter(l=>l.bids.some(b=>b.carrier===carrierName));
+  const r1 = myLanes.filter(l=>l.bids[0]?.carrier===carrierName).length;
   return (
     <div>
-      <div className="section-header"><div><div className="page-title">{displayName} — Carrier Portal</div><div className="page-sub">Contracted RFP + Spot Load Board</div></div></div>
+      <div className="section-header"><div><div className="page-title">{carrierName||"Carrier"} — Portal</div><div className="page-sub">Contracted RFP + Spot Load Board</div></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
         <div className="card-sm" style={{cursor:"pointer",borderLeft:`4px solid ${C.ash}`}} onClick={()=>setPage("event")}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>📋 Spindrift RFP — May–Aug 2026</div>
