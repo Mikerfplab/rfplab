@@ -5546,7 +5546,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
   const [page, setPage] = useState(role === "carrier" ? "event" : "dashboard");
   const [selectedBid, setSelectedBid] = useState(null);
   const [selectedRFP, setSelectedRFP] = useState(null);
-    const [bidSettings, setBidSettings] = useState({...DEFAULT_BID_SETTINGS});
+  const [bidSettings, setBidSettings] = useState({...DEFAULT_BID_SETTINGS});
 
   // Real users get EMPTY state — data comes from Supabase
   // Demo mode (no dbUser) shows seed data for illustration only
@@ -5556,7 +5556,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
 
   const isLocked = dbProfile && dbProfile.role !== 'admin';
   const displayName = dbProfile?.company || dbProfile?.full_name ||
-    (role === "carrier" ? displayName : role === "shipper" ? "Spindrift Beverages" : "RFPlab Admin");
+    (role === "carrier" ? "Carrier" : role === "shipper" ? "Shipper" : "RFPlab Admin");
 
   const handleSignOut = async () => {
     const { signOut } = await import('./supabase.js');
