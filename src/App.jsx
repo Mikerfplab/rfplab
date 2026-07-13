@@ -1,3 +1,4 @@
+// RFPlab v2.1 — build 20260713-1906
 import { useState, useEffect, useRef } from "react";
 
 // ─── RFPlab.com Brand Tokens ──────────────────────────────────────────────────
