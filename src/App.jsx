@@ -4072,30 +4072,78 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
   const [tab, setTab] = useState("overview");
   const [addCarrierModal, setAddCarrierModal] = useState(false);
   const [newCarrier, setNewCarrier] = useState({name:"",email:"",scac:"",contact:""});
-  const [awardModal, setAwardModal] = useState(null); // lane object
   const [selectedAward, setSelectedAward] = useState({});
+  const [carriers, setCarriers] = useState([]);
+  const [lanes, setLanes] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
 
-  // Carrier list from the RFP — comes from rfp.carrierInvites (loaded from Supabase)
-  const carriers = rfp?.carrierInvites || rfp?.carriers || [];
-  const sampleLanes = rfp?.lanes || [];
+  useEffect(() => {
+    if (!rfp?.id) return;
+    Promise.all([
+      import('./supabase.js').then(({ supabase }) =>
+        supabase.from('rfp_invites').select('*').eq('rfp_id', rfp.id)
+          .then(r => setCarriers(r.data || []))
+      ),
+      import('./supabase.js').then(({ getLanes }) =>
+        getLanes(rfp.id).then(d => setLanes(d || []))
+      ),
+      import('./supabase.js').then(({ getActivityLog }) =>
+        getActivityLog(rfp.id).then(d => setActivity(d || []))
+      ),
+    ]).finally(() => setLoading(false));
+  }, [rfp?.id]);
 
   const statusMeta = {
-    submitted: {label:"Submitted",    bg:C.greenlt, color:C.green},
-    confirmed: {label:"Acknowledged", bg:"#E6F9EE", color:"#00A043"},
-    invited:   {label:"Invited",      bg:C.goldlt,  color:"#7A5A10"},
-    declined:  {label:"Declined",     bg:C.rustlt,  color:C.rust},
+    submitted:     {label:"Submitted",    bg:C.greenlt, color:C.green},
+    intent_yes:    {label:"Acknowledged", bg:"#E6F9EE", color:"#00A043"},
+    invited:       {label:"Invited",      bg:C.goldlt,  color:"#7A5A10"},
+    intent_no:     {label:"Declined",     bg:C.rustlt,  color:C.rust},
+    intent_maybe:  {label:"Undecided",    bg:C.parchment,color:C.stone},
   };
 
-  const submitted   = carriers.filter(c=>c.status==="submitted").length;
-  const acknowledged= carriers.filter(c=>c.acknowledged==="yes").length;
-  const declined    = carriers.filter(c=>c.status==="declined").length;
-  const totalLanesRated = carriers.reduce((s,c)=>s+c.lanesRated,0);
+  const submitted    = carriers.filter(c=>c.status==="submitted").length;
+  const acknowledged = carriers.filter(c=>["intent_yes","submitted"].includes(c.status)).length;
+  const declined     = carriers.filter(c=>c.status==="intent_no").length;
 
-  const handleAddCarrier = () => {
+  const handleAddCarrier = async () => {
     if (!newCarrier.name || !newCarrier.email) return;
-    // In production: insert into rfp_invites table + send email
-    setAddCarrierModal(false);
-    setNewCarrier({name:"",email:"",scac:"",contact:""});
+    setInviting(true);
+    setInviteMsg("");
+    try {
+      // 1. Insert into rfp_invites
+      const { supabase } = await import('./supabase.js');
+      const { error } = await supabase.from('rfp_invites').insert({
+        rfp_id:       rfp.id,
+        carrier_name: newCarrier.name,
+        carrier_email:newCarrier.email,
+        status:       'invited',
+      });
+      if (error) throw error;
+
+      // 2. Send invite email
+      const { sendRFPInvite } = await import('./email.js');
+      await sendRFPInvite({
+        carrierEmail: newCarrier.email,
+        carrierName:  newCarrier.name,
+        shipperName:  rfp.shipper_name || dbProfile?.company || "Shipper",
+        rfpName:      rfp.name,
+        lanes:        lanes.length || "—",
+        deadline:     fmtDateShort(rfp.rate_deadline),
+      });
+
+      // 3. Refresh carrier list
+      const { data } = await supabase.from('rfp_invites').select('*').eq('rfp_id', rfp.id);
+      setCarriers(data || []);
+      setInviteMsg(`✓ Invite sent to ${newCarrier.email}`);
+      setNewCarrier({name:"",email:"",scac:"",contact:""});
+      setTimeout(() => setAddCarrierModal(false), 1500);
+    } catch(e) {
+      setInviteMsg(`Error: ${e.message}`);
+    }
+    setInviting(false);
   };
 
   return (
@@ -4117,10 +4165,10 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
 
       {/* Stats */}
       <div className="stat-grid" style={{marginBottom:16}}>
-        <div className="stat-tile"><div className="stat-label">Carriers Invited</div><div className="stat-value">{carriers.length}</div><div className="stat-sub">{acknowledged} acknowledged</div></div>
-        <div className="stat-tile"><div className="stat-label">Rates Submitted</div><div className="stat-value" style={{color:C.green}}>{submitted}</div><div className="stat-sub">of {carriers.length} invited</div></div>
-        <div className="stat-tile"><div className="stat-label">Declined</div><div className="stat-value" style={{color:declined>0?C.rust:C.stone}}>{declined}</div></div>
-        <div className="stat-tile"><div className="stat-label">Lane Coverage</div><div className="stat-value">{sampleLanes.filter(l=>l.bids.length>0).length}</div><div className="stat-sub">of {sampleLanes.length} lanes have bids</div></div>
+        <div className="stat-tile"><div className="stat-label">Carriers Invited</div><div className="stat-value">{loading?"…":carriers.length}</div><div className="stat-sub">{acknowledged} acknowledged</div></div>
+        <div className="stat-tile"><div className="stat-label">Rates Submitted</div><div className="stat-value" style={{color:C.green}}>{loading?"…":submitted}</div><div className="stat-sub">of {carriers.length} invited</div></div>
+        <div className="stat-tile"><div className="stat-label">Declined</div><div className="stat-value" style={{color:declined>0?C.rust:C.stone}}>{loading?"…":declined}</div></div>
+        <div className="stat-tile"><div className="stat-label">Lanes</div><div className="stat-value">{loading?"…":lanes.length}</div><div className="stat-sub">uploaded</div></div>
       </div>
 
       <div className="tab-bar">
@@ -4174,105 +4222,80 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
       {/* Carriers */}
       {tab==="carriers" && (
         <div>
-          <div className="card" style={{padding:0,overflow:"hidden"}}>
-            <table>
-              <thead><tr>
-                <th>Carrier</th><th>SCAC</th><th>Email</th><th>Acknowledged</th><th>Lanes Submitted</th><th>Last Activity</th><th>Status</th><th></th>
-              </tr></thead>
-              <tbody>
-                {carriers.map(c=>{
-                  const sm = statusMeta[c.status]||statusMeta.invited;
-                  return (
-                    <tr key={c.id}>
-                      <td style={{fontWeight:700,color:C.black}}>{c.name}</td>
-                      <td className="mono" style={{color:C.stone}}>{c.scac}</td>
-                      <td style={{fontSize:11,color:C.stone}}>{c.email}</td>
-                      <td>
-                        {c.acknowledged==="yes"
-                          ? <span style={{color:C.green,fontWeight:700,fontSize:11}}>✓ Yes</span>
-                          : c.acknowledged==="no"
-                            ? <span style={{color:C.rust,fontSize:11}}>✕ Declined</span>
-                            : <span style={{color:C.stone,fontSize:11}}>—</span>}
-                      </td>
-                      <td>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{width:80,height:5,background:C.sand,borderRadius:3}}>
-                            <div style={{height:5,width:`${c.lanesTotal>0?Math.round((c.lanesRated/c.lanesTotal)*100):0}%`,background:C.green,borderRadius:3}}/>
-                          </div>
-                          <span style={{fontSize:11,color:C.stone}}>{c.lanesRated}/{c.lanesTotal}</span>
-                        </div>
-                      </td>
-                      <td style={{fontSize:11,color:C.stone}}>{c.lastActivity?fmtDateShort(c.lastActivity):"—"}</td>
-                      <td><span style={{background:sm.bg,color:sm.color,fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:2,textTransform:"uppercase"}}>{sm.label}</span></td>
-                      <td>
-                        <div style={{display:"flex",gap:4}}>
-                          <button className="btn btn-ghost btn-xs" style={{fontSize:10}}>📧 Remind</button>
-                          <button className="btn btn-ghost btn-xs" style={{fontSize:10,color:C.rust}}>Remove</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {loading
+            ? <div className="card" style={{textAlign:"center",padding:32,color:C.stone}}>Loading carriers…</div>
+            : carriers.length === 0
+              ? <div className="card" style={{textAlign:"center",padding:"36px 20px",border:`2px dashed ${C.sand}`}}>
+                  <div style={{fontSize:28,marginBottom:10}}>📭</div>
+                  <div style={{fontWeight:600,fontSize:13,color:C.black,marginBottom:6}}>No carriers invited yet</div>
+                  <div style={{fontSize:12,color:C.stone,marginBottom:14}}>Add carriers to start collecting bids.</div>
+                  <button className="btn btn-green" onClick={()=>setAddCarrierModal(true)}>+ Add First Carrier</button>
+                </div>
+              : <div className="card" style={{padding:0,overflow:"hidden"}}>
+                  <table>
+                    <thead><tr>
+                      <th>Carrier</th><th>Email</th><th>Invited</th><th>Status</th><th></th>
+                    </tr></thead>
+                    <tbody>
+                      {carriers.map(c=>{
+                        const sm = statusMeta[c.status]||statusMeta.invited;
+                        return (
+                          <tr key={c.id}>
+                            <td style={{fontWeight:700,color:C.black}}>{c.carrier_name||"—"}</td>
+                            <td style={{fontSize:11,color:C.stone}}>{c.carrier_email}</td>
+                            <td style={{fontSize:11,color:C.stone}}>{fmtDateShort(c.invited_at)}</td>
+                            <td><span style={{background:sm.bg,color:sm.color,fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:2,textTransform:"uppercase"}}>{sm.label}</span></td>
+                            <td>
+                              <button className="btn btn-ghost btn-xs" style={{fontSize:10}}>📧 Remind</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>}
           <button className="btn btn-green btn-sm" style={{marginTop:10}} onClick={()=>setAddCarrierModal(true)}>+ Add Carrier to Bid</button>
         </div>
       )}
 
-      {/* Lanes — rate view with award capability */}
+      {/* Lanes */}
       {tab==="lanes" && (
         <div>
-          <div className="alert info" style={{marginBottom:12,fontSize:12}}>
-            You can award lanes before the bid closes. Awards are provisional until the bid deadline passes.
-          </div>
-          <div className="card" style={{padding:0,overflow:"hidden"}}>
-            <table>
-              <thead><tr>
-                <th>Lane</th><th>Origin</th><th>Destination</th><th>Mode</th><th>Vol</th><th>Miles</th><th>Bids</th><th>Low Bid</th><th>Award</th>
-              </tr></thead>
-              <tbody>
-                {sampleLanes.map(lane=>{
-                  const sorted = [...lane.bids].sort((a,b)=>a.rate-b.rate);
-                  const low = sorted[0];
-                  const awarded = selectedAward[lane.id];
-                  return (
-                    <tr key={lane.id} style={{background:awarded?C.greenlt:"transparent"}}>
-                      <td className="mono" style={{fontSize:11,color:C.stone}}>{lane.id}</td>
-                      <td style={{fontSize:12}}>{lane.orig}</td>
-                      <td style={{fontSize:12}}>{lane.dest}</td>
-                      <td><span style={{fontSize:10,fontWeight:700,color:lane.mode==="Reefer"?C.green:C.stone}}>{lane.mode}</span></td>
-                      <td className="mono" style={{fontSize:11}}>{lane.vol}</td>
-                      <td className="mono" style={{fontSize:11}}>{lane.miles.toLocaleString()}</td>
-                      <td style={{fontSize:11,color:C.stone}}>{lane.bids.length} bid{lane.bids.length!==1?"s":""}</td>
-                      <td style={{fontWeight:700,color:C.green,fontFamily:"'DM Mono',monospace"}}>
-                        {low?`$${low.rate.toLocaleString()}`:"—"}
-                        {low&&<div style={{fontSize:9,color:C.stone,fontWeight:400}}>{low.carrier}</div>}
-                      </td>
-                      <td>
-                        {awarded
-                          ? <div style={{display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{fontSize:10,fontWeight:700,color:C.green}}>✓ {awarded}</span>
-                              <button className="btn btn-ghost btn-xs" style={{fontSize:9}} onClick={()=>setSelectedAward(a=>({...a,[lane.id]:null}))}>Change</button>
-                            </div>
-                          : <select style={{fontSize:11,padding:"3px 6px"}} value="" onChange={e=>{if(e.target.value)setSelectedAward(a=>({...a,[lane.id]:e.target.value}));}}>
-                              <option value="">— Select carrier —</option>
-                              {sorted.map(b=><option key={b.carrier} value={b.carrier}>{b.carrier} (${b.rate.toLocaleString()})</option>)}
-                            </select>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {Object.values(selectedAward).some(Boolean) && (
-            <div style={{marginTop:12,display:"flex",gap:8,alignItems:"center"}}>
-              <span style={{fontSize:12,color:C.stone}}>{Object.values(selectedAward).filter(Boolean).length} lane{Object.values(selectedAward).filter(Boolean).length!==1?"s":""} provisionally awarded</span>
-              <button className="btn btn-green">✓ Confirm All Awards & Notify Carriers</button>
-              <button className="btn btn-outline">Export Award Summary</button>
-            </div>
-          )}
+          {loading
+            ? <div className="card" style={{textAlign:"center",padding:32,color:C.stone}}>Loading lanes…</div>
+            : lanes.length === 0
+              ? <div className="card" style={{textAlign:"center",padding:"36px 20px",border:`2px dashed ${C.sand}`}}>
+                  <div style={{fontSize:28,marginBottom:10}}>🗺️</div>
+                  <div style={{fontWeight:600,fontSize:13,color:C.black,marginBottom:6}}>No lanes uploaded yet</div>
+                  <div style={{fontSize:12,color:C.stone}}>Lane data is uploaded via the RFP wizard lane file step.</div>
+                </div>
+              : <div className="card" style={{padding:0,overflow:"hidden"}}>
+                  <table>
+                    <thead><tr>
+                      <th>Lane</th><th>Origin</th><th>Destination</th><th>Mode</th><th>Vol</th><th>Miles</th><th>Award</th>
+                    </tr></thead>
+                    <tbody>
+                      {lanes.map(lane=>{
+                        const awarded = selectedAward[lane.id];
+                        return (
+                          <tr key={lane.id} style={{background:awarded?C.greenlt:"transparent"}}>
+                            <td className="mono" style={{fontSize:11,color:C.stone}}>{lane.lane_code||lane.id?.slice(0,8)}</td>
+                            <td style={{fontSize:12}}>{lane.orig_city}, {lane.orig_state}</td>
+                            <td style={{fontSize:12}}>{lane.dest_city}, {lane.dest_state}</td>
+                            <td><span style={{fontSize:10,fontWeight:700,color:lane.mode==="Reefer"?C.green:C.stone}}>{lane.mode}</span></td>
+                            <td className="mono" style={{fontSize:11}}>{lane.volume||"—"}</td>
+                            <td className="mono" style={{fontSize:11}}>{lane.miles?.toLocaleString()||"—"}</td>
+                            <td>
+                              {awarded
+                                ? <span style={{fontSize:10,fontWeight:700,color:C.green}}>✓ {awarded}</span>
+                                : <span style={{fontSize:11,color:C.stone}}>—</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>}
         </div>
       )}
 
@@ -4280,20 +4303,22 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
       {tab==="activity" && (
         <div className="card">
           <div className="card-title" style={{marginBottom:14}}>📜 Bid Activity Log</div>
-          {(rfp?.activityLog||[]).length===0
-            ? <div style={{textAlign:"center",padding:"32px",color:C.stone,fontSize:13}}>No activity yet — invite your carriers to get started.</div>
-            : (rfp?.activityLog||[]).map((e,i)=>{
-            const icons = {rates_submitted:"📊",file_downloaded:"⬇",intent_yes:"✅",intent_no:"❌",invite_sent:"📧"};
-            return (
-              <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.sand}`}}>
-                <span style={{fontSize:18,flexShrink:0}}>{icons[e.event]||"•"}</span>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:600,color:C.black}}>{e.carrier} — {e.detail}</div>
-                  <div style={{fontSize:10,color:C.stone,marginTop:2}}>{fmtDateTime(e.ts||e.created_at)}</div>
-                </div>
-              </div>
-            );
-          })}
+          {loading
+            ? <div style={{textAlign:"center",padding:24,color:C.stone}}>Loading…</div>
+            : activity.length === 0
+              ? <div style={{textAlign:"center",padding:"32px",color:C.stone,fontSize:13}}>No activity yet — invite your carriers to get started.</div>
+              : activity.map((e,i)=>{
+                  const icons = {rates_submitted:"📊",file_downloaded:"⬇",intent_yes:"✅",intent_no:"❌",invite_sent:"📧"};
+                  return (
+                    <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.sand}`}}>
+                      <span style={{fontSize:18,flexShrink:0}}>{icons[e.event]||"•"}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:600,color:C.black}}>{e.carrier_name||e.carrier} — {e.detail}</div>
+                        <div style={{fontSize:10,color:C.stone,marginTop:2}}>{fmtDateTime(e.created_at)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
         </div>
       )}
 
@@ -4306,7 +4331,8 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
               <button className="btn btn-ghost" onClick={()=>setAddCarrierModal(false)}>✕</button>
             </div>
             <div className="modal-body">
-              <div className="alert info" style={{marginBottom:14}}>The carrier will receive an invite email with their secure bid link immediately.</div>
+              <div className="alert info" style={{marginBottom:14}}>The carrier will receive an invite email immediately with their secure bid link.</div>
+              {inviteMsg && <div className={`alert ${inviteMsg.startsWith("✓")?"success":"warn"}`} style={{marginBottom:12}}>{inviteMsg}</div>}
               <div className="form-group"><label>Company Name *</label><input value={newCarrier.name} onChange={e=>setNewCarrier(c=>({...c,name:e.target.value}))} placeholder="Carrier / Broker name"/></div>
               <div className="form-group"><label>Contact Email *</label><input type="email" value={newCarrier.email} onChange={e=>setNewCarrier(c=>({...c,email:e.target.value}))} placeholder="rates@carrier.com"/></div>
               <div className="form-group"><label>SCAC (optional)</label><input value={newCarrier.scac} onChange={e=>setNewCarrier(c=>({...c,scac:e.target.value}))} placeholder="e.g. ROAR"/></div>
@@ -4314,7 +4340,9 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={()=>setAddCarrierModal(false)}>Cancel</button>
-              <button className="btn btn-green" onClick={handleAddCarrier} disabled={!newCarrier.name||!newCarrier.email}>📧 Add & Send Invite</button>
+              <button className="btn btn-green" onClick={handleAddCarrier} disabled={inviting||!newCarrier.name||!newCarrier.email}>
+                {inviting ? "⏳ Sending…" : "📧 Add & Send Invite"}
+              </button>
             </div>
           </div>
         </div>
