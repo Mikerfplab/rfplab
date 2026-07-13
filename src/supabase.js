@@ -160,3 +160,23 @@ export async function sendUserInvite({ email, role, company, full_name }) {
   })
   return { data, error }
 }
+
+// ─── Organization / Multi-user support ───────────────────────────────────────
+
+export async function getOrgMembers(company) {
+  // Get all users that belong to the same company
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('company', company)
+    .order('created_at', { ascending: true })
+  return data || []
+}
+
+export async function updateUserProfile(userId, updates) {
+  const { error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+  return { error }
+}
