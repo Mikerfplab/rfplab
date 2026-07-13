@@ -381,53 +381,12 @@ const DEFAULT_BID_SETTINGS = {
   assetVsBrokerSplit: 60,
 };
 
-// ─── CARRIERS (with asset/broker flag) ───────────────────────────────────────
-const ALL_CARRIERS = [
-  { id:1, name:"ROAR Logistics",          scac:"ROAR", type:"broker",  contact:"john@roar.com",     invited:true,  submitted:true,  bids:62 },
-  { id:2, name:"C.H. Robinson",           scac:"RBTW", type:"broker",  contact:"rates@chr.com",      invited:true,  submitted:true,  bids:71 },
-  { id:3, name:"Echo Global",             scac:"ECHS", type:"broker",  contact:"bids@echo.com",      invited:true,  submitted:true,  bids:55 },
-  { id:4, name:"Circle Logistics",        scac:"CLIM", type:"broker",  contact:"ops@circle.com",     invited:true,  submitted:true,  bids:43 },
-  { id:5, name:"Total Quality Logistics", scac:"TQYL", type:"broker",  contact:"rfp@tql.com",        invited:true,  submitted:true,  bids:38 },
-  { id:6, name:"Molo Solutions",          scac:"MOLY", type:"broker",  contact:"bids@molo.com",      invited:true,  submitted:true,  bids:29 },
-  { id:7, name:"Allen Lund",              scac:"LUAC", type:"broker",  contact:"rfp@allenlund.com",  invited:true,  submitted:true,  bids:22 },
-  { id:8, name:"Elberta Carriers",        scac:"ELFI", type:"asset",   contact:"rates@elberta.com",  invited:true,  submitted:true,  bids:34 },
-  { id:9, name:"Market Express",          scac:"MKXD", type:"asset",   contact:"rfp@marketexp.com",  invited:true,  submitted:true,  bids:41 },
-  { id:10,name:"JBHUNT",                  scac:"HJBB", type:"asset",   contact:"rfp@jbhunt.com",     invited:true,  submitted:true,  bids:28 },
-  { id:11,name:"NFI Logistics",           scac:"NFBR", type:"asset",   contact:"rfp@nfi.com",        invited:true,  submitted:true,  bids:19 },
-  { id:12,name:"PLS Logistics",           scac:"PTLC", type:"broker",  contact:"rfp@plslogistics.com",invited:true, submitted:false, bids:0  },
-  { id:13,name:"Spot Freight Inc",        scac:"SFIK", type:"broker",  contact:"ops@spotfreight.com", invited:true, submitted:false, bids:0  },
-];
+// ─── CARRIERS — empty, data comes from Supabase ──────────────────────────────
+const ALL_CARRIERS = [];
 
-// ─── LANES with full bid data (sorted lowest→highest by r1 after render) ─────
-const LANES_RAW = [
-  { id:"SD-0001", type:"INBOUND",  origCity:"Beaumont",  origSt:"CA", destCity:"Irwindale",  destSt:"CA", mode:"Reefer",   vol:44,    miles:65,    incumbent:"Spot Freight Inc", incumbentScac:"SFIK", incumbentRate:510,
-    bids:[{carrier:"Spot Freight Inc",scac:"SFIK",type:"broker",rate:486},{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:502},{carrier:"Circle Logistics",scac:"CLIM",type:"broker",rate:521},{carrier:"Elberta Carriers",scac:"ELFI",type:"asset",rate:534}]},
-  { id:"SD-0002", type:"INBOUND",  origCity:"Beaumont",  origSt:"CA", destCity:"Mooresville",destSt:"NC", mode:"Reefer",   vol:28.6,  miles:2373,  incumbent:"ROAR Logistics",   incumbentScac:"ROAR", incumbentRate:5400,
-    bids:[{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:5150},{carrier:"C.H. Robinson",scac:"RBTW",type:"broker",rate:5325},{carrier:"Echo Global",scac:"ECHS",type:"broker",rate:5490},{carrier:"Elberta Carriers",scac:"ELFI",type:"asset",rate:5600}]},
-  { id:"SD-0003", type:"INBOUND",  origCity:"Beaumont",  origSt:"CA", destCity:"Clackamas",  destSt:"OR", mode:"Reefer",   vol:42.9,  miles:565,   incumbent:"Molo Solutions",   incumbentScac:"MOLY", incumbentRate:2780,
-    bids:[{carrier:"Molo Solutions",scac:"MOLY",type:"broker",rate:2568},{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:2700},{carrier:"Total Quality Logistics",scac:"TQYL",type:"broker",rate:2850},{carrier:"Market Express",scac:"MKXD",type:"asset",rate:2690}]},
-  { id:"SD-0005", type:"OUTBOUND", origCity:"Irwindale", origSt:"CA", destCity:"Phoenix",    destSt:"AZ", mode:"Dry Van",  vol:38.6,  miles:368,   incumbent:null, incumbentScac:null, incumbentRate:null,
-    bids:[{carrier:"C.H. Robinson",scac:"RBTW",type:"broker",rate:875},{carrier:"Echo Global",scac:"ECHS",type:"broker",rate:912},{carrier:"Circle Logistics",scac:"CLIM",type:"broker",rate:945},{carrier:"Elberta Carriers",scac:"ELFI",type:"asset",rate:899},{carrier:"Market Express",scac:"MKXD",type:"asset",rate:888}]},
-  { id:"SD-0008", type:"OUTBOUND", origCity:"Irwindale", origSt:"CA", destCity:"Gilroy",     destSt:"CA", mode:"Dry Van",  vol:23.9,  miles:325,   incumbent:"ROAR Logistics",   incumbentScac:"ROAR", incumbentRate:1050,
-    bids:[{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:966},{carrier:"Allen Lund",scac:"LUAC",type:"broker",rate:999},{carrier:"Total Quality Logistics",scac:"TQYL",type:"broker",rate:1020},{carrier:"JBHUNT",scac:"HJBB",type:"asset",rate:985}]},
-  { id:"SD-0010", type:"INBOUND",  origCity:"Irwindale", origSt:"CA", destCity:"Redlands",   destSt:"CA", mode:"Dry Van",  vol:308,   miles:52,    incumbent:"ROAR Logistics",   incumbentScac:"ROAR", incumbentRate:420,
-    bids:[{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:399},{carrier:"C.H. Robinson",scac:"RBTW",type:"broker",rate:415},{carrier:"Echo Global",scac:"ECHS",type:"broker",rate:430},{carrier:"Market Express",scac:"MKXD",type:"asset",rate:408},{carrier:"JBHUNT",scac:"HJBB",type:"asset",rate:412}]},
-  { id:"SD-0022", type:"OUTBOUND", origCity:"Redlands",  origSt:"CA", destCity:"Aurora",     destSt:"CO", mode:"Dry Van",  vol:74.8,  miles:1003,  incumbent:null, incumbentScac:null, incumbentRate:null,
-    bids:[{carrier:"C.H. Robinson",scac:"RBTW",type:"broker",rate:2450},{carrier:"Circle Logistics",scac:"CLIM",type:"broker",rate:2550},{carrier:"Echo Global",scac:"ECHS",type:"broker",rate:2700},{carrier:"Elberta Carriers",scac:"ELFI",type:"asset",rate:2490},{carrier:"NFI Logistics",scac:"NFBR",type:"asset",rate:2520}]},
-  { id:"SD-0040", type:"OUTBOUND", origCity:"Charlotte", origSt:"NC", destCity:"Lakeland",   destSt:"FL", mode:"Dry Van",  vol:110,   miles:584,   incumbent:"C.H. Robinson",    incumbentScac:"RBTW", incumbentRate:1410,
-    bids:[{carrier:"C.H. Robinson",scac:"RBTW",type:"broker",rate:1341},{carrier:"Echo Global",scac:"ECHS",type:"broker",rate:1389},{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:1450},{carrier:"JBHUNT",scac:"HJBB",type:"asset",rate:1360},{carrier:"Elberta Carriers",scac:"ELFI",type:"asset",rate:1395}]},
-  { id:"SD-0047", type:"OUTBOUND", origCity:"Mooresville",origSt:"NC",destCity:"Cheshire",   destSt:"CT", mode:"Dry Van",  vol:38.5,  miles:696,   incumbent:"JBHUNT",           incumbentScac:"HJBB", incumbentRate:1950,
-    bids:[{carrier:"JBHUNT",scac:"HJBB",type:"asset",rate:1809},{carrier:"C.H. Robinson",scac:"RBTW",type:"broker",rate:1875},{carrier:"Circle Logistics",scac:"CLIM",type:"broker",rate:1920},{carrier:"NFI Logistics",scac:"NFBR",type:"asset",rate:1890}]},
-  { id:"SD-0065", type:"OUTBOUND", origCity:"Clackamas", origSt:"OR", destCity:"Aurora",     destSt:"CO", mode:"Dry Van",  vol:60.5,  miles:1272,  incumbent:"Elberta Carriers", incumbentScac:"ELFI", incumbentRate:2700,
-    bids:[{carrier:"Elberta Carriers",scac:"ELFI",type:"asset",rate:2523},{carrier:"ROAR Logistics",scac:"ROAR",type:"broker",rate:2620},{carrier:"Total Quality Logistics",scac:"TQYL",type:"broker",rate:2750},{carrier:"Market Express",scac:"MKXD",type:"asset",rate:2560}]},
-];
-
-// Sort each lane's bids lowest to highest
-const LANES = LANES_RAW.map(l => ({
-  ...l,
-  bids: [...l.bids].sort((a,b) => a.rate - b.rate),
-}));
-
+// ─── LANES — empty, loaded from Supabase per RFP ────────────────────────────
+const LANES_RAW = [];
+const LANES = [];
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function pctFromLow(rate, low) { return low ? (((rate - low) / low) * 100).toFixed(1) : null; }
 function toBracket(pct) {
@@ -494,32 +453,7 @@ const EVENT_TYPE_META = {
   award_viewed:     {icon:"🏆", label:"Award Viewed",       color:C.purple},
 };
 
-// Seed log with realistic history
-const SEED_LOG = [
-  {id:1, ts:"2026-03-18T09:02:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"invite_sent",     detail:"Invite sent to john@roar.com",              actor:"shipper"},
-  {id:2, ts:"2026-03-18T09:03:00", carrier:"C.H. Robinson",   scac:"RBTW", event:"invite_sent",     detail:"Invite sent to rates@chr.com",               actor:"shipper"},
-  {id:3, ts:"2026-03-18T09:04:00", carrier:"Echo Global",     scac:"ECHS", event:"invite_sent",     detail:"Invite sent to bids@echo.com",               actor:"shipper"},
-  {id:4, ts:"2026-03-18T14:17:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"invite_viewed",   detail:"Event page viewed — IP: 72.34.x.x",          actor:"carrier"},
-  {id:5, ts:"2026-03-18T14:19:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"file_downloaded", detail:"Lane File downloaded",                        actor:"carrier"},
-  {id:6, ts:"2026-03-18T14:22:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"file_downloaded", detail:"FSC Table downloaded",                        actor:"carrier"},
-  {id:7, ts:"2026-03-18T14:25:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"intent_yes",      detail:"Confirmed intent to participate",             actor:"carrier"},
-  {id:8, ts:"2026-03-19T08:44:00", carrier:"C.H. Robinson",   scac:"RBTW", event:"invite_viewed",   detail:"Event page viewed — IP: 98.12.x.x",          actor:"carrier"},
-  {id:9, ts:"2026-03-19T08:46:00", carrier:"C.H. Robinson",   scac:"RBTW", event:"file_downloaded", detail:"Lane File downloaded",                        actor:"carrier"},
-  {id:10,ts:"2026-03-19T08:50:00", carrier:"C.H. Robinson",   scac:"RBTW", event:"intent_yes",      detail:"Confirmed intent to participate",             actor:"carrier"},
-  {id:11,ts:"2026-03-20T11:30:00", carrier:"Echo Global",     scac:"ECHS", event:"invite_viewed",   detail:"Event page viewed — IP: 204.11.x.x",         actor:"carrier"},
-  {id:12,ts:"2026-03-20T11:32:00", carrier:"Echo Global",     scac:"ECHS", event:"intent_maybe",    detail:"Marked intent as undecided",                 actor:"carrier"},
-  {id:13,ts:"2026-03-21T15:10:00", carrier:"Circle Logistics",scac:"CLIM", event:"invite_sent",     detail:"Invite sent to ops@circle.com",              actor:"shipper"},
-  {id:14,ts:"2026-03-22T09:00:00", carrier:"Circle Logistics",scac:"CLIM", event:"invite_viewed",   detail:"Event page viewed — IP: 67.90.x.x",          actor:"carrier"},
-  {id:15,ts:"2026-03-22T09:05:00", carrier:"Circle Logistics",scac:"CLIM", event:"file_downloaded", detail:"Lane File downloaded",                        actor:"carrier"},
-  {id:16,ts:"2026-03-22T09:06:00", carrier:"Circle Logistics",scac:"CLIM", event:"file_downloaded", detail:"Term Sheet downloaded",                      actor:"carrier"},
-  {id:17,ts:"2026-03-22T09:10:00", carrier:"Circle Logistics",scac:"CLIM", event:"intent_yes",      detail:"Confirmed intent to participate",             actor:"carrier"},
-  {id:18,ts:"2026-03-28T16:45:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"rates_submitted", detail:"62 lane rates submitted",                    actor:"carrier"},
-  {id:19,ts:"2026-03-30T10:12:00", carrier:"C.H. Robinson",   scac:"RBTW", event:"rates_submitted", detail:"71 lane rates submitted",                    actor:"carrier"},
-  {id:20,ts:"2026-04-01T13:55:00", carrier:"ROAR Logistics",  scac:"ROAR", event:"rates_updated",   detail:"Rates revised on 4 lanes",                   actor:"carrier"},
-  {id:21,ts:"2026-04-02T09:20:00", carrier:"Echo Global",     scac:"ECHS", event:"intent_yes",      detail:"Updated intent to participate",               actor:"carrier"},
-  {id:22,ts:"2026-04-02T14:00:00", carrier:"Echo Global",     scac:"ECHS", event:"rates_submitted", detail:"55 lane rates submitted",                    actor:"carrier"},
-];
-
+const SEED_LOG = []; // Real activity loaded from Supabase
 // ─── PAGE: Carrier Event / Bid Landing Page ───────────────────────────────────
 // BID_DOCS is now a function that takes the bidSettings/lanes state
 // to determine which docs are available and their download URLs
@@ -832,7 +766,7 @@ function ActivityLogPage({ activityLog, viewerRole, dbProfile }) {
   const [filterCarrier, setFilterCarrier] = useState("all");
   const [filterEvent, setFilterEvent] = useState("all");
   const isReal = !!dbProfile;
-  const carrierName = dbProfile?.company || dbProfile?.full_name || "ROAR Logistics";
+  const carrierName = dbProfile?.company || dbProfile?.full_name || "Your Company";
 
   // For real users with no activity yet, show a clean empty state
   if (isReal && activityLog.length === 0) {
@@ -1478,13 +1412,7 @@ function WStep6({ data, set }) {
 }
 
 // ── Wiz Step 7 ────────────────────────────────────────────────────────────────
-const W_SUGGESTED = [
-  {id:1,name:"ROAR Logistics",scac:"ROAR",contact:"John Smith",email:"john@roar.com",dot:"1234567",type:"broker"},
-  {id:2,name:"C.H. Robinson",scac:"RBTW",contact:"Sarah Lane",email:"rates@chr.com",dot:"2345678",type:"broker"},
-  {id:3,name:"Echo Global",scac:"ECHS",contact:"Mike Torres",email:"bids@echo.com",dot:"3456789",type:"broker"},
-  {id:4,name:"Elberta Carriers",scac:"ELFI",contact:"Dana Reed",email:"rates@elberta.com",dot:"4567890",type:"asset"},
-  {id:5,name:"JBHUNT",scac:"HJBB",contact:"Tom Wells",email:"rfp@jbhunt.com",dot:"5678901",type:"asset"},
-];
+const W_SUGGESTED = []; // Populated from your carrier network in Supabase
 
 function WStep7({ data, set }) {
   const carriers = data.carriers || [];
@@ -1581,7 +1509,7 @@ function WStep7({ data, set }) {
         <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.sand}`,fontSize:11,color:C.stone}}>
           <strong>Template format:</strong> Name, SCAC, Contact, Email, DOT, Type (broker/asset/both)
           <button className="btn btn-ghost btn-xs" style={{marginLeft:8}} onClick={()=>{
-            const csv = "Name,SCAC,Contact,Email,DOT,Type\nROAR Logistics,ROAR,John Smith,john@roar.com,1234567,broker\nElberta Carriers,ELFI,Dana Reed,rates@elberta.com,4567890,asset";
+            const csv = "Name,SCAC,Contact,Email,DOT,Type\nExample Carrier Inc,EXMP,Jane Smith,rates@example.com,1234567,broker\nExample Asset Carrier,EXAC,John Doe,bids@exampleasset.com,7654321,asset";
             const blob = new Blob([csv], {type:"text/csv"});
             const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="carrier_template.csv"; a.click();
           }}>⬇ Download Template</button>
@@ -2138,57 +2066,9 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
 const _NOW = Date.now();
 const _hr = 3600000, _min = 60000;
 
-const SPOT_LOADS_SEED = [
-  { id:"SL-0441", status:"live",
-    origin:{city:"Irwindale",state:"CA",zip:"91010",facility:"Spindrift West DC",addr:"2400 Barranca Pkwy"},
-    dest:{city:"Aurora",state:"CO",zip:"80011",facility:"Walmart DC #6084",addr:"16000 E Smith Rd"},
-    pickup:"2026-07-03", puWindow:"07:00–10:00", delivery:"2026-07-05", dlWindow:"06:00–14:00",
-    mode:"Dry Van", weight:"42,800 lbs", miles:1003, commodity:"Beverage — Non-Haz",
-    temp:null, lumper:true, appt:true,
-    notes:"Walmart-approved drivers only. Lumper provided at destination. No early arrivals.",
-    windowEnds:_NOW + 2*_hr + 17*_min,
-    quotes:[
-      {id:1,carrier:"ROAR Logistics",scac:"ROAR",type:"broker",amount:2450,ts:_NOW-45*_min},
-      {id:2,carrier:"C.H. Robinson",scac:"RBTW",type:"broker",amount:2550,ts:_NOW-38*_min},
-      {id:3,carrier:"Elberta Carriers",scac:"ELFI",type:"asset",amount:2490,ts:_NOW-31*_min},
-      {id:4,carrier:"Circle Logistics",scac:"CLIM",type:"broker",amount:2620,ts:_NOW-22*_min},
-      {id:5,carrier:"JBHUNT",scac:"HJBB",type:"asset",amount:2700,ts:_NOW-8*_min},
-    ], awarded:false, awardedTo:null, awardedRate:null },
-  { id:"SL-0440", status:"live",
-    origin:{city:"Beaumont",state:"CA",zip:"92223",facility:"Spindrift Beaumont",addr:"1900 Beaumont Ave"},
-    dest:{city:"Clackamas",state:"OR",zip:"97015",facility:"Target FDC Portland",addr:"9355 SE Clackamas Rd"},
-    pickup:"2026-07-02", puWindow:"10:00–13:00", delivery:"2026-07-03", dlWindow:"07:00–16:00",
-    mode:"Reefer", weight:"44,200 lbs", miles:1089, commodity:"Beverage — Refrigerated",
-    temp:"34–38°F", lumper:false, appt:true,
-    notes:"Reefer pre-cool required. Continuous 34–38°F. BOL must be driver-signed.",
-    windowEnds:_NOW + 28*_min,
-    quotes:[
-      {id:1,carrier:"Market Express",scac:"MKXD",type:"asset",amount:3100,ts:_NOW-90*_min},
-      {id:2,carrier:"ROAR Logistics",scac:"ROAR",type:"broker",amount:3250,ts:_NOW-60*_min},
-      {id:3,carrier:"Total Quality Logistics",scac:"TQYL",type:"broker",amount:3400,ts:_NOW-45*_min},
-    ], awarded:false, awardedTo:null, awardedRate:null },
-  { id:"SL-0439", status:"awarded",
-    origin:{city:"Mooresville",state:"NC",zip:"28117",facility:"Spindrift East DC",addr:"111 Mooresville Industrial"},
-    dest:{city:"Lakeland",state:"FL",zip:"33801",facility:"Publix #3301",addr:"3300 Publix Corp Pkwy"},
-    pickup:"2026-06-30", puWindow:"08:00–12:00", delivery:"2026-07-01", dlWindow:"06:00–10:00",
-    mode:"Dry Van", weight:"41,500 lbs", miles:838, commodity:"Beverage — Non-Haz",
-    temp:null, lumper:false, appt:true, notes:"Delivery appointment required — no exceptions.",
-    windowEnds:_NOW - 4*_hr,
-    quotes:[
-      {id:1,carrier:"C.H. Robinson",scac:"RBTW",type:"broker",amount:1890,ts:_NOW-6*_hr},
-      {id:2,carrier:"Echo Global",scac:"ECHS",type:"broker",amount:1940,ts:_NOW-5.5*_hr},
-      {id:3,carrier:"NFI Logistics",scac:"NFBR",type:"asset",amount:2010,ts:_NOW-5*_hr},
-    ], awarded:true, awardedTo:"C.H. Robinson", awardedRate:1890 },
-  { id:"SL-0438", status:"closed",
-    origin:{city:"Redlands",state:"CA",zip:"92373",facility:"Spindrift Redlands",addr:"600 Alabama St"},
-    dest:{city:"Phoenix",state:"AZ",zip:"85034",facility:"Walmart DC #7090",addr:"4545 E McDowell Rd"},
-    pickup:"2026-06-29", puWindow:"09:00–12:00", delivery:"2026-06-30", dlWindow:"06:00–14:00",
-    mode:"Dry Van", weight:"38,200 lbs", miles:368, commodity:"Beverage — Non-Haz",
-    temp:null, lumper:false, appt:false, notes:"Closed — no quotes received.",
-    windowEnds:_NOW - 26*_hr,
-    quotes:[], awarded:false, awardedTo:null, awardedRate:null },
-];
-
+// Spot loads — no seed data. All loads come from Supabase.
+// Shippers see their own loads (getSpotLoads); carriers see public loads (getPublicSpotLoads)
+const SPOT_LOADS_SEED = []; // intentionally empty
 function SpotCountdown({ endsAt, compact=false }) {
   const [now, setNow] = useState(Date.now());
   useEffect(()=>{ const t=setInterval(()=>setNow(Date.now()),1000); return()=>clearInterval(t); },[]);
@@ -2215,7 +2095,7 @@ function SpotQuoteBar({ q, idx, isAwarded, isMe, blind=false }) {
     <div className={`quote-bar${isAwarded&&idx===0?" winning":isMe?" myquote":""}`}>
       <span className={`rank-circ ${rc}`}>#{idx+1}</span>
       {blind
-        ? <div style={{flex:1,fontWeight:600,fontSize:12,color:C.gray,fontStyle:"italic"}}>{isMe?"You — ROAR Logistics":"(Confidential)"}</div>
+        ? <div style={{flex:1,fontWeight:600,fontSize:12,color:C.gray,fontStyle:"italic"}}>{isMe?`You — ${carrierName}`:"(Confidential)"}</div>
         : <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:600,fontSize:12}}>{q.carrier}</div>
             <span className={`badge ${q.type==="asset"?"badge-asset":"badge-broker"}`} style={{fontSize:9,padding:"1px 6px"}}>{q.type}</span>
@@ -2232,20 +2112,20 @@ function SpotQuoteBar({ q, idx, isAwarded, isMe, blind=false }) {
 function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
   const [tab, setTab] = useState("details");
   const [myQuote, setMyQuote] = useState("");
-  const [quoteSubmitted, setQuoteSubmitted] = useState(load.quotes.some(q=>q.carrier==="ROAR Logistics"));
+  const [quoteSubmitted, setQuoteSubmitted] = useState(load.quotes.some(q=>q.carrier===displayName));
   const [submitting, setSubmitting] = useState(false);
   const [awardPick, setAwardPick] = useState(null);
   const [showInsurance, setShowInsurance] = useState(false);
   const isOpen = load.windowEnds > Date.now() && !load.awarded && load.status!=="closed";
   const sorted = [...load.quotes].sort((a,b)=>a.amount-b.amount);
   const low = sorted.length ? sorted[0].amount : null;
-  const myQ = load.quotes.find(q=>q.carrier==="ROAR Logistics");
+  const myQ = load.quotes.find(q=>q.carrier===displayName);
 
   const handleSubmit = () => {
     if (!myQuote||isNaN(parseFloat(myQuote))) return;
     setSubmitting(true);
     setTimeout(()=>{
-      onQuote(load.id,{id:Date.now(),carrier:"ROAR Logistics",scac:"ROAR",type:"broker",amount:parseFloat(myQuote),ts:Date.now()});
+      onQuote(load.id,{id:Date.now(),carrier:displayName,scac:"ROAR",type:"broker",amount:parseFloat(myQuote),ts:Date.now()});
       setQuoteSubmitted(true); setSubmitting(false); setTab("quotes");
     },800);
   };
@@ -2305,7 +2185,7 @@ function SpotLoadModal({ load, role, onClose, onAward, onQuote }) {
                 {low&&<div style={{fontSize:12,color:C.gray}}>Low: <strong className="mono" style={{color:C.green}}>${low.toLocaleString()}</strong></div>}
               </div>
               {sorted.length===0&&<div style={{textAlign:"center",padding:"28px 0",color:C.gray,fontSize:12}}>No quotes yet.</div>}
-              {sorted.map((q,i)=><SpotQuoteBar key={q.id} q={q} idx={i} isAwarded={!!load.awarded} isMe={q.carrier==="ROAR Logistics"} blind={role==="carrier"&&q.carrier!=="ROAR Logistics"}/>)}
+              {sorted.map((q,i)=><SpotQuoteBar key={q.id} q={q} idx={i} isAwarded={!!load.awarded} isMe={q.carrier===displayName} blind={role==="carrier"&&q.carrier!==displayName}/>)}
             </div>
           )}
           {tab==="submit"&&role==="carrier"&&(
@@ -2451,7 +2331,7 @@ function SpotPostModal({ onClose, onPost }) {
 function SpotLoadCard({ load, role, onClick }) {
   const sorted = [...load.quotes].sort((a,b)=>a.amount-b.amount);
   const low = sorted.length ? sorted[0].amount : null;
-  const myQ = load.quotes.find(q=>q.carrier==="ROAR Logistics");
+  const myQ = load.quotes.find(q=>q.carrier===displayName);
   return (
     <div className={`load-card-spot${load.awarded?" awarded":load.status==="closed"?" closed-s":""}`} onClick={onClick}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}>
@@ -2481,11 +2361,31 @@ function SpotLoadCard({ load, role, onClick }) {
   );
 }
 
-function SpotBoard({ role }) {
-  const [loads, setLoads] = useState(SPOT_LOADS_SEED);
+function SpotBoard({ role, dbProfile }) {
+  const [loads, setLoads] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showPost, setShowPost] = useState(false);
   const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    if (!dbProfile) { setLoading(false); return; }
+    const loader = role === "carrier"
+      ? import('./supabase.js').then(({ getPublicSpotLoads }) => getPublicSpotLoads())
+      : import('./supabase.js').then(({ getSpotLoads }) => getSpotLoads(dbProfile.id));
+    loader.then(data => {
+      // Normalise Supabase rows to the shape SpotBoard expects
+      const shaped = (data || []).map(row => ({
+        ...row,
+        windowEnds: row.window_ends ? new Date(row.window_ends).getTime() : Date.now() + 3600000,
+        quotes: row.spot_quotes || [],
+        origin: row.origin || {},
+        dest:   row.dest   || {},
+      }));
+      setLoads(shaped);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [dbProfile, role]);
 
   const handleAward=(loadId,quoteId)=>{
     setLoads(prev=>prev.map(l=>{if(l.id!==loadId)return l;const q=l.quotes.find(q=>q.id===quoteId);return{...l,awarded:true,awardedTo:q.carrier,awardedRate:q.amount,status:"awarded"};}));
@@ -2499,7 +2399,7 @@ function SpotBoard({ role }) {
   const live=loads.filter(l=>l.windowEnds>Date.now()&&!l.awarded&&l.status!=="closed");
   const awarded=loads.filter(l=>l.awarded);
   const totalQuotes=loads.reduce((s,l)=>s+l.quotes.length,0);
-  const myQuotes=loads.reduce((s,l)=>s+l.quotes.filter(q=>q.carrier==="ROAR Logistics").length,0);
+  const myQuotes=loads.reduce((s,l)=>s+l.quotes.filter(q=>q.carrier===(dbProfile?.company||dbProfile?.full_name||"")).length,0);
 
   const filtered=loads.filter(l=>{
     if(filter==="live")return l.windowEnds>Date.now()&&!l.awarded&&l.status!=="closed";
@@ -2507,6 +2407,8 @@ function SpotBoard({ role }) {
     if(filter==="closed")return(l.windowEnds<=Date.now()&&!l.awarded)||l.status==="closed";
     return true;
   });
+
+  if (loading) return <div className="card" style={{textAlign:"center",padding:48,color:C.stone}}>Loading loads…</div>;
 
   return (
     <div>
@@ -2615,7 +2517,7 @@ function Sidebar({ role, page, setPage }) {
       <div className="sidebar-user">
         <div className="sidebar-role">{role}</div>
         <div style={{fontWeight:600,color:"rgba(255,255,255,0.75)",fontSize:12}}>
-          {role==="admin"?"RFPlab Admin":role==="shipper"?"Spindrift Beverages":"ROAR Logistics"}
+          {role==="admin"?"RFPlab Admin":role==="shipper"?"Spindrift Beverages":displayName}
         </div>
         <div style={{fontSize:11,marginTop:2}}>{role==="admin"?"admin@rfplab.com":role==="shipper"?"procurement@spindrift.com":"rates@roar.com"}</div>
       </div>
@@ -3221,7 +3123,7 @@ function NewRFPPage({ setPage, setBidSettings }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const RISK_CARRIERS = [
-  { id:1, name:"ROAR Logistics", scac:"ROAR", type:"broker", dot:"1234567", mc:"MC-987654",
+  { id:1, name:displayName, scac:"ROAR", type:"broker", dot:"1234567", mc:"MC-987654",
     status:"approved", relationship:"Preferred", since:"2021-03", totalLoads:842, totalSpend:1240000,
     otd:94.2, acceptance:96.8, claimRatio:0.3, claims:3,
     contacts:[
@@ -3312,11 +3214,14 @@ function ScoreBar({ value, max=100, danger=70, warn=85 }) {
 }
 
 // ── PAGE 1: Carrier Network ──────────────────────────────────────────────────
-function RiskCarriersPage() {
+function RiskCarriersPage({ dbProfile }) {
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState("profile");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  // In production: load carriers from rfp_invites WHERE shipper_id = dbProfile.id
+  // For now shows the demo carrier network with a clear label
+  const [isDemo] = useState(!dbProfile);
 
   const filtered = RISK_CARRIERS.filter(c => {
     if (filter !== "all" && c.status !== filter) return false;
@@ -3338,9 +3243,17 @@ function RiskCarriersPage() {
   return (
     <div>
       <div className="section-header">
-        <div><div className="page-title">Carrier Network</div><div className="page-sub">Profiles, relationships, performance history, and vetting status</div></div>
+        <div>
+          <div className="page-title">Carrier Network</div>
+          <div className="page-sub">Profiles, relationships, performance history, and vetting status</div>
+        </div>
         <button className="btn btn-primary">+ Add Carrier</button>
       </div>
+      {isDemo && (
+        <div className="alert info" style={{marginBottom:14,fontSize:12}}>
+          📊 <strong>Demo data shown.</strong> Your live carrier network will populate here from your RFP invite history once bids are active. Each shipper sees only their own carrier relationships.
+        </div>
+      )}
 
       {/* Alerts strip */}
       {alerts.length > 0 && (
@@ -4632,19 +4545,40 @@ function OrgTeamPage({ dbProfile, role }) {
 }
 
 // ─── Carrier Bid List — shows all bids the carrier is invited to ──────────────
-const CARRIER_SAMPLE_BIDS = [
-  { id:"RFP-2026-001", name:"Spindrift TL RFP 2026 - SEPT - DEC", shipper:"Spindrift Beverage Co.",
-    modes:"Dry Van, Reefer, IMDL", deadline:"2026-07-30", awardDate:"2026-08-17", goLive:"2026-09-06",
-    status:"active", myStatus:"invited", lanesTotal:97, lanesRated:0,
-    rateFormat:"flat_linehaul", feedbackEnabled:true, feedbackType:"bracket",
-    maxWeight:"44,500", twoRounds:false,
-    rfpOverview:"", guidelines:"",
-    inviteDate:"2026-07-13", rateDeadline:"2026-07-30", reviewDate:"2026-08-10",
-  },
-];
-
+// Real bids loaded from Supabase rfp_invites table filtered by carrier email
+const CARRIER_SAMPLE_BIDS = []; // empty — data comes from Supabase
 function CarrierBidList({ setPage, dbProfile, onSelectBid }) {
-  const [bids] = useState(CARRIER_SAMPLE_BIDS);
+  const [bids, setBids] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!dbProfile) { setLoading(false); return; }
+    // Load RFPs this carrier has been invited to
+    import('./supabase.js').then(({ getMyInvites }) => {
+      getMyInvites(dbProfile.email || "").then(invites => {
+        // Map invite records to bid objects
+        const mapped = (invites || []).map(inv => ({
+          id:          inv.rfps?.id || inv.rfp_id,
+          name:        inv.rfps?.name || "RFP Invitation",
+          shipper:     inv.rfps?.shipper_name || "Shipper",
+          modes:       inv.rfps?.modes || [],
+          deadline:    inv.rfps?.rate_deadline,
+          awardDate:   inv.rfps?.award_date,
+          goLive:      inv.rfps?.go_live_date,
+          status:      inv.rfps?.status || "active",
+          myStatus:    inv.status || "invited",
+          lanesTotal:  inv.rfps?.lane_count || 0,
+          lanesRated:  inv.lanes_rated || 0,
+          rateDeadline: inv.rfps?.rate_deadline,
+          // Pass full rfp data for bid detail view
+          ...inv.rfps,
+          carrierInviteId: inv.id,
+        }));
+        setBids(mapped);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    });
+  }, [dbProfile]);
 
   const statusMeta = {
     invited:   { label:"Invited — Not Acknowledged", bg:"#F5EDD4", color:"#7A5A10" },
@@ -4670,11 +4604,13 @@ function CarrierBidList({ setPage, dbProfile, onSelectBid }) {
         </div>
       </div>
 
-      {bids.length === 0
+      {loading
+        ? <div className="card" style={{textAlign:"center",padding:40,color:C.stone}}>Loading your bids…</div>
+        : bids.length === 0
         ? <div className="card" style={{textAlign:"center",padding:"52px 20px",border:`2px dashed ${C.sand}`}}>
             <div style={{fontSize:36,marginBottom:12}}>📬</div>
             <div style={{fontWeight:700,fontSize:14,color:C.black,marginBottom:6}}>No active bid invitations</div>
-            <div style={{fontSize:12,color:C.stone}}>When a shipper invites you to participate in an RFP, it will appear here.</div>
+            <div style={{fontSize:12,color:C.stone}}>When a shipper invites you to an RFP, it will appear here.</div>
           </div>
         : <div>
             {bids.map(bid => {
@@ -4737,27 +4673,9 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
   const [awardModal, setAwardModal] = useState(null); // lane object
   const [selectedAward, setSelectedAward] = useState({});
 
-  // Sample carrier submission data — in production comes from Supabase bids table
-  const carriers = rfp?.carrierInvites || [
-    {id:1,name:"ROAR Logistics",    scac:"ROAR",email:"rates@roar.com",   status:"submitted", lanesRated:62,lanesTotal:97,lastActivity:"2026-07-12",acknowledged:"yes"},
-    {id:2,name:"Elberta Carriers",  scac:"ELFI",email:"rates@elberta.com",status:"confirmed", lanesRated:0, lanesTotal:97,lastActivity:"2026-07-11",acknowledged:"yes"},
-    {id:3,name:"Market Express",    scac:"MKXD",email:"rfp@marketexp.com", status:"invited",   lanesRated:0, lanesTotal:97,lastActivity:null,          acknowledged:null},
-    {id:4,name:"C.H. Robinson",     scac:"RBTW",email:"rates@chr.com",    status:"submitted", lanesRated:71,lanesTotal:97,lastActivity:"2026-07-13",acknowledged:"yes"},
-    {id:5,name:"Echo Global",       scac:"ECHO",email:"bids@echo.com",    status:"declined",  lanesRated:0, lanesTotal:97,lastActivity:"2026-07-10",acknowledged:"no"},
-  ];
-
-  const sampleLanes = [
-    {id:"SD-0001",orig:"Beaumont, CA",dest:"Irwindale, CA",mode:"Reefer",vol:44,miles:65,
-      bids:[{carrier:"ROAR Logistics",rate:950},{carrier:"C.H. Robinson",rate:890}]},
-    {id:"SD-0002",orig:"Beaumont, CA",dest:"Mooresville, NC",mode:"Reefer",vol:29,miles:2373,
-      bids:[{carrier:"ROAR Logistics",rate:4200},{carrier:"C.H. Robinson",rate:3950}]},
-    {id:"SD-0005",orig:"Irwindale, CA",dest:"Phoenix, AZ",mode:"Dry Van",vol:39,miles:368,
-      bids:[{carrier:"ROAR Logistics",rate:850},{carrier:"C.H. Robinson",rate:820}]},
-    {id:"SD-0010",orig:"Irwindale, CA",dest:"Redlands, CA",mode:"Dry Van",vol:308,miles:52,
-      bids:[{carrier:"ROAR Logistics",rate:425},{carrier:"C.H. Robinson",rate:410}]},
-    {id:"SD-0022",orig:"Redlands, CA",dest:"Aurora, CO",mode:"Dry Van",vol:75,miles:1003,
-      bids:[{carrier:"C.H. Robinson",rate:1950}]},
-  ];
+  // Carrier list from the RFP — comes from rfp.carrierInvites (loaded from Supabase)
+  const carriers = rfp?.carrierInvites || rfp?.carriers || [];
+  const sampleLanes = rfp?.lanes || [];
 
   const statusMeta = {
     submitted: {label:"Submitted",    bg:C.greenlt, color:C.green},
@@ -4960,21 +4878,16 @@ function ShipperRFPDetail({ rfp, setPage, dbProfile }) {
       {tab==="activity" && (
         <div className="card">
           <div className="card-title" style={{marginBottom:14}}>📜 Bid Activity Log</div>
-          {[
-            {ts:"2026-07-13 11:18",carrier:"ROAR Logistics",  event:"rates_submitted", detail:"62 lane rates submitted"},
-            {ts:"2026-07-13 09:44",carrier:"C.H. Robinson",   event:"rates_submitted", detail:"71 lane rates submitted"},
-            {ts:"2026-07-12 16:30",carrier:"ROAR Logistics",  event:"file_downloaded", detail:"Lane File downloaded"},
-            {ts:"2026-07-11 14:22",carrier:"Elberta Carriers", event:"intent_yes",     detail:"Confirmed intent to participate"},
-            {ts:"2026-07-10 10:05",carrier:"Echo Global",      event:"intent_no",      detail:"Declining — will not bid"},
-            {ts:"2026-07-09 08:00",carrier:"All",              event:"invite_sent",    detail:"Invitations sent to 5 carriers"},
-          ].map((e,i)=>{
+          {(rfp?.activityLog||[]).length===0
+            ? <div style={{textAlign:"center",padding:"32px",color:C.stone,fontSize:13}}>No activity yet — invite your carriers to get started.</div>
+            : (rfp?.activityLog||[]).map((e,i)=>{
             const icons = {rates_submitted:"📊",file_downloaded:"⬇",intent_yes:"✅",intent_no:"❌",invite_sent:"📧"};
             return (
               <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.sand}`}}>
                 <span style={{fontSize:18,flexShrink:0}}>{icons[e.event]||"•"}</span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:12,fontWeight:600,color:C.black}}>{e.carrier} — {e.detail}</div>
-                  <div style={{fontSize:10,color:C.stone,marginTop:2}}>{e.ts}</div>
+                  <div style={{fontSize:10,color:C.stone,marginTop:2}}>{fmtDateTime(e.ts||e.created_at)}</div>
                 </div>
               </div>
             );
@@ -5592,11 +5505,11 @@ function ShipperDashboard({ setPage, dbProfile }) {
 
 
 function CarrierDashboard({ setPage, bidSettings, dbProfile }) {
-  const myLanes = LANES.filter(l=>l.bids.some(b=>b.carrier==="ROAR Logistics"));
-  const r1 = myLanes.filter(l=>l.bids[0].carrier==="ROAR Logistics").length;
+  const myLanes = LANES.filter(l=>l.bids.some(b=>b.carrier===displayName));
+  const r1 = myLanes.filter(l=>l.bids[0].carrier===displayName).length;
   return (
     <div>
-      <div className="section-header"><div><div className="page-title">ROAR Logistics — Portal</div><div className="page-sub">Contracted RFP + Spot Load Board</div></div></div>
+      <div className="section-header"><div><div className="page-title">{displayName} — Carrier Portal</div><div className="page-sub">Contracted RFP + Spot Load Board</div></div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
         <div className="card-sm" style={{cursor:"pointer",borderLeft:`4px solid ${C.steel}`}} onClick={()=>setPage("event")}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>📋 Spindrift RFP — May–Aug 2026</div>
@@ -5642,7 +5555,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
 
   const isLocked = dbProfile && dbProfile.role !== 'admin';
   const displayName = dbProfile?.company || dbProfile?.full_name ||
-    (role === "carrier" ? "ROAR Logistics" : role === "shipper" ? "Spindrift Beverages" : "RFPlab Admin");
+    (role === "carrier" ? displayName : role === "shipper" ? "Spindrift Beverages" : "RFPlab Admin");
 
   const handleSignOut = async () => {
     const { signOut } = await import('./supabase.js');
@@ -5691,7 +5604,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="admin" dbProfile={dbProfile}/>;
       if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile} onSelectRFP={rfp=>{setSelectedRFP(rfp);setPage("rfp_detail");}}/>;
       if (page==="rfp_detail") return <ShipperRFPDetail rfp={selectedRFP} setPage={setPage} dbProfile={dbProfile}/>;
-      if (page==="risk_carriers")  return <RiskCarriersPage/>;
+      if (page==="risk_carriers")  return <RiskCarriersPage dbProfile={dbProfile}/>;
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
       if (page==="risk_loadsure")  return <RiskLoadsurePage setPage={setPage}/>;
@@ -5704,7 +5617,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="shipper" dbProfile={dbProfile}/>;
       if (page==="rfps")      return <MyRFPsPage setPage={setPage} role={role} dbProfile={dbProfile} onSelectRFP={rfp=>{setSelectedRFP(rfp);setPage("rfp_detail");}}/>;
       if (page==="rfp_detail") return <ShipperRFPDetail rfp={selectedRFP} setPage={setPage} dbProfile={dbProfile}/>;
-      if (page==="risk_carriers")  return <RiskCarriersPage/>;
+      if (page==="risk_carriers")  return <RiskCarriersPage dbProfile={dbProfile}/>;
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
       if (page==="risk_loadsure")  return <RiskLoadsurePage setPage={setPage}/>;
