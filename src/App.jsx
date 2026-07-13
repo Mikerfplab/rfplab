@@ -2044,28 +2044,60 @@ function SpotBoard({ role }) {
 // ─── END SPOT LOAD SECTION ────────────────────────────────────────────────────
 // Black block with spaced R F P + vertical LAB alongside
 function RFPLabLogo({ dark = false, size = "md" }) {
-  const scales = { sm: 0.52, md: 0.72, lg: 1 };
-  const sc = scales[size] || 0.72;
-  const blockW = 148, blockH = 74, labW = 22;
-  const totalW = blockW + 6 + labW;
-  const totalH = blockH;
-  // Site logo: always cream text on black/dark block
+  const scales = { sm: 0.48, md: 0.68, lg: 1 };
+  const sc = scales[size] || 0.68;
+
+  // Dimensions matched to the actual logo image:
+  // Black block is wide ~3:2, LAB sits to the right rotated 90° CW, bottom-aligned
+  const bW = 210, bH = 130;       // black block
+  const gap = 10;                  // gap between block and LAB
+  const labW = 32;                 // LAB column width
+  const totalW = bW + gap + labW;
+  const totalH = bH;
+
+  // Colors: on dark bg the block lifts slightly so it reads
   const blockFill = dark ? "#2A2A2A" : "#111111";
-  const textFill  = "#F5F0E8"; // cream — always
-  const labFill   = dark ? "#F5F0E8" : "#111111";
+  const rfpFill   = "#F5F0E8";          // cream RFP — always
+  const labFill   = dark ? "#F5F0E8" : "#111111"; // LAB matches bg color
+
+  // LAB rotated 90° CW, centered in its column, vertically centered to block
+  const labCX = bW + gap + labW / 2;
+  const labCY = bH / 2;
 
   return (
-    <svg width={totalW * sc} height={totalH * sc} viewBox={`0 0 ${totalW} ${totalH}`}
-      xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RFPlab logo"
-      style={{ display: "block", flexShrink: 0 }}>
-      <rect x={0} y={0} width={blockW} height={blockH} fill={blockFill} rx={0}/>
-      <text x={blockW/2} y={blockH*0.735} textAnchor="middle"
-        fontFamily="'Arial Black','Arial',sans-serif" fontWeight="900"
-        fontSize="44" letterSpacing="10" fill={textFill}>R F P</text>
-      <text x={blockW+6+labW/2} y={totalH*0.5} textAnchor="middle"
-        dominantBaseline="central" fontFamily="'Arial Black','Arial',sans-serif"
-        fontWeight="900" fontSize="18" letterSpacing="3" fill={labFill}
-        transform={`rotate(90,${blockW+6+labW/2},${totalH*0.5})`}>LAB</text>
+    <svg
+      width={totalW * sc} height={totalH * sc}
+      viewBox={`0 0 ${totalW} ${totalH}`}
+      xmlns="http://www.w3.org/2000/svg"
+      role="img" aria-label="RFPlab logo"
+      style={{ display: "block", flexShrink: 0 }}
+    >
+      {/* Black block */}
+      <rect x={0} y={0} width={bW} height={bH} fill={blockFill}/>
+
+      {/* R F P — wide spaced, bold, vertically centered in block */}
+      <text
+        x={bW / 2} y={bH * 0.72}
+        textAnchor="middle"
+        fontFamily="'Arial Black','Impact','Franklin Gothic Heavy',Arial,sans-serif"
+        fontWeight="900"
+        fontSize="72"
+        letterSpacing="14"
+        fill={rfpFill}
+      >R F P</text>
+
+      {/* LAB — rotated 90° clockwise, sitting to the right of the block */}
+      <text
+        x={labCX} y={labCY}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontFamily="'Arial Black','Impact','Franklin Gothic Heavy',Arial,sans-serif"
+        fontWeight="900"
+        fontSize="26"
+        letterSpacing="5"
+        fill={labFill}
+        transform={`rotate(90, ${labCX}, ${labCY})`}
+      >LAB</text>
     </svg>
   );
 }
