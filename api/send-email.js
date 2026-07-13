@@ -13,15 +13,15 @@ function shell(body) {
 <style>
 body,html{margin:0;padding:0;background:#F5F0E8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1E1E1E;}
 .shell{max-width:600px;margin:0 auto;}
-.hdr{background:#111111;padding:28px 36px 22px;}
-.logo{font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:30px;letter-spacing:8px;color:#F5F0E8;}
-.lab{font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:13px;letter-spacing:3px;color:#F5F0E8;margin-left:8px;vertical-align:middle;}
-.tag{color:rgba(245,240,232,.35);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-top:6px;}
+.hdr{background:#0A1A14;padding:24px 36px 20px;border-bottom:1px solid rgba(0,200,83,.15);}
+
+
+.tag{color:rgba(0,200,83,.5);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-top:8px;}
 .bdy{background:#FDFCF9;padding:36px;}
 .h1{font-size:22px;font-weight:800;color:#111111;letter-spacing:-.5px;margin:0 0 8px;}
 .sub{font-size:13px;color:#8C8070;margin:0 0 22px;line-height:1.6;}
 .box{background:#EDE8DF;border-radius:6px;padding:16px 18px;margin:16px 0;}
-.dr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #D4C9B8;font-size:12px;}
+.dr{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid #D4C9B8;font-size:12px;gap:16px;}
 .dr:last-child{border-bottom:none;}
 .dk{color:#8C8070;}.dv{font-weight:700;color:#111111;text-align:right;max-width:60%;}
 .cta{display:inline-block;background:#111111;color:#F5F0E8 !important;text-decoration:none;font-weight:800;font-size:12px;letter-spacing:.5px;text-transform:uppercase;padding:13px 28px;border-radius:4px;margin:18px 0 4px;}
@@ -40,12 +40,12 @@ hr{border:none;border-top:1px solid #D4C9B8;margin:20px 0;}
 </style></head>
 <body><div class="shell">
   <div class="hdr">
-    <span class="logo">R F P</span><span class="lab">LAB</span>
+    <img src="https://rfplab.com/Final%20Image.png" alt="RFPlab" style="height:52px;width:auto;display:block;"/>
     <div class="tag">Freight Intelligence Platform</div>
   </div>
   <div class="bdy">${body}</div>
   <div class="ftr"><p class="ft">
-    <a href="https://rfplab.com">rfplab.com</a> &nbsp;·&nbsp;
+    <a href="https://rfplab.com">rfplab.com</a> &nbsp;·&nbsp; <a href="mailto:Mike@rfplab.com">Mike@rfplab.com</a> &nbsp;·&nbsp;
     <a href="https://rfplab.com/unsubscribe">Unsubscribe</a>
   </p></div>
 </div></body></html>`;
@@ -116,7 +116,8 @@ const templates = {
   }),
 
   spot_invite: ({ carrierName, shipperName, origCity, origState, destCity, destState, mode, pickup, windowEnds, loadUrl }) => {
-    const wDate = new Date(windowEnds).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    const fmt = (d) => { try { return new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}); } catch(e){return d||"—";} };
+  const wDate = new Date(windowEnds).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
     const wTime = new Date(windowEnds).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
     return {
       from: FROM_INVITES,
