@@ -30,7 +30,12 @@ export async function getProfile(userId) {
 
 // ─── RFP helpers ──────────────────────────────────────────────────────────────
 export async function getRFPs(shipperId) {
-  const { data } = await supabase.from('rfps').select('*').eq('shipper_id', shipperId).order('created_at', { ascending: false })
+  // Try by shipper_id first, fall back to all active RFPs if none found
+  const { data } = await supabase
+    .from('rfps')
+    .select('*')
+    .or(`shipper_id.eq.${shipperId},status.eq.active`)
+    .order('created_at', { ascending: false })
   return data || []
 }
 
