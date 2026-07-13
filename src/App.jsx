@@ -1,82 +1,89 @@
 import { useState, useEffect } from "react";
 
 // ─── RFPlab.com Brand Tokens ──────────────────────────────────────────────────
-// Pulled directly from rfplab.com: black backgrounds, cream text, warm grays
-// No blues. Monochromatic, editorial, freight-industry authority.
+// Matched to rfplab.com website: dark teal backgrounds, bright green accent,
+// white/cream text. Editorial, bold, freight-industry authority.
 const C = {
-  // Core brand
-  black:   "#111111",   // near-black — main backgrounds (sidebar, hero)
-  ink:     "#1E1E1E",   // slightly lifted black — card hover, secondary bg
-  charcoal:"#2A2A2A",   // borders on dark backgrounds, secondary panels
-  cream:   "#F5F0E8",   // primary text on dark — the rfplab.com cream
-  warmWhite:"#FDFCF9",  // page background — warm off-white, not clinical
-  parchment:"#EDE8DF",  // card backgrounds, alternate rows
-  sand:    "#D4C9B8",   // muted borders, dividers on light bg
-  stone:   "#8C8070",   // secondary text, labels
-  ash:     "#5A534A",   // body text on light backgrounds
+  // Core dark backgrounds — website uses deep teal-black
+  black:    "#0A1A14",   // deepest bg — sidebar, hero panels
+  ink:      "#0F2318",   // secondary dark — card backgrounds on dark
+  charcoal: "#1A3028",   // borders on dark, lifted panels
+  teal:     "#0D2B1F",   // mid-tone dark teal — section backgrounds
 
-  // Functional accents — warm, not cool
-  gold:    "#C9A84C",   // primary accent — active states, CTAs, highlights
-  goldlt:  "#F5EDD4",   // light gold for badges / chips
-  olive:   "#5C6B2E",   // success / awarded (muted green)
-  olivelt: "#EBF0DC",   // success background
-  rust:    "#9B3A1E",   // warning / urgent
-  rustlt:  "#F5E6E0",   // warning background
-  crimson: "#7A1F1F",   // error / danger
-  crimsonlt:"#F5E0E0",  // error background
+  // Light surfaces — page background and cards
+  warmWhite:"#F8FAF9",   // page background — very slight cool tint
+  parchment:"#EEF3F0",   // card alt rows, hover states
+  sand:     "#C8D9D2",   // borders on light backgrounds
+  stone:    "#6B8B7E",   // secondary text / labels
+  ash:      "#2D4A3E",   // body text on light backgrounds
 
-  // Keep these for functional semantics (alerts, rates, badges)
-  // but they'll render in warm tones not bright blues
-  navy:    "#111111",   // maps to black in this brand
-  slate:   "#1E1E1E",
-  steel:   "#2A2A2A",
-  sky:     "#C9A84C",   // gold replaces sky blue as the "accent"
-  ice:     "#F5EDD4",   // goldlt replaces ice
-  white:   "#FDFCF9",
-  offwhite:"#EDE8DF",
-  green:   "#5C6B2E",   // olive replaces green
-  greenlt: "#EBF0DC",
-  amber:   "#9B3A1E",   // rust replaces amber
-  amberlt: "#F5E6E0",
-  red:     "#7A1F1F",
-  redlt:   "#F5E0E0",
-  gray:    "#8C8070",
-  grayli:  "#D4C9B8",
-  text:    "#1E1E1E",
-  purple:  "#5A4A3A",   // warm brown replaces purple for secondary accents
-  purplt:  "#EDE8DF",
+  // Primary accent — bright green from website
+  green:    "#00C853",   // bright green — CTAs, active states, highlights
+  greenlt:  "#E6F9EE",   // light green backgrounds
+  greendk:  "#00A043",   // darker green for hover states
+  neon:     "#39FF6B",   // the brightest green used sparingly
+
+  // Semantic colors
+  gold:     "#C9A84C",   // warning / attention
+  goldlt:   "#F5EDD4",   // warning background
+  olive:    "#2E7D32",   // success (darker green)
+  olivelt:  "#E8F5E9",   // success background
+  rust:     "#B71C1C",   // error / danger
+  rustlt:   "#FFEBEE",   // error background
+  amber:    "#E65100",   // urgent
+  amberlt:  "#FFF3E0",   // urgent background
+
+  // Aliases kept for backward compat with existing component references
+  navy:     "#0A1A14",
+  slate:    "#0F2318",
+  steel:    "#1A3028",
+  sky:      "#00C853",   // green replaces sky blue as accent
+  ice:      "#E6F9EE",   // greenlt replaces ice
+  white:    "#F8FAF9",
+  offwhite: "#EEF3F0",
+  cream:    "#E8F2EE",   // text on dark backgrounds
+  greenlt2: "#E6F9EE",
+  amber2:   "#E65100",
+  amberlt2: "#FFF3E0",
+  red:      "#B71C1C",
+  redlt:    "#FFEBEE",
+  gray:     "#6B8B7E",
+  grayli:   "#C8D9D2",
+  text:     "#0A1A14",
+  purple:   "#1B5E20",
+  purplt:   "#E8F5E9",
 };
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@700;900&family=DM+Mono:wght@400;500&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Inter',sans-serif;background:${C.warmWhite};color:${C.ash};}
   .mono{font-family:'DM Mono',monospace;}
   .app{display:flex;height:100vh;overflow:hidden;}
 
-  /* ── Sidebar ── dark, editorial, rfplab.com style */
+  /* ── Sidebar ── deep teal, rfplab.com style */
   .sidebar{width:224px;min-width:224px;background:${C.black};display:flex;flex-direction:column;overflow-y:auto;border-right:1px solid ${C.charcoal};}
   .main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
   .topbar{background:${C.warmWhite};border-bottom:1px solid ${C.sand};padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
   .content{padding:28px;flex:1;}
   .sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid ${C.charcoal};}
   .sidebar-section{padding:10px 0;}
-  .sidebar-label{font-size:8px;font-weight:800;letter-spacing:2px;color:rgba(245,240,232,.25);text-transform:uppercase;padding:0 16px;margin-bottom:4px;}
-  .nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:rgba(245,240,232,.5);font-size:12px;font-weight:500;transition:all 0.15s;border-left:2px solid transparent;letter-spacing:0.2px;}
-  .nav-item:hover{background:rgba(245,240,232,.04);color:${C.cream};}
-  .nav-item.active{background:rgba(201,168,76,.08);color:${C.gold};border-left-color:${C.gold};}
-  .sidebar-user{margin-top:auto;padding:14px 16px;border-top:1px solid ${C.charcoal};font-size:11px;color:rgba(245,240,232,.35);}
-  .sidebar-role{display:inline-block;background:${C.charcoal};color:${C.gold};font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-bottom:4px;}
+  .sidebar-label{font-size:8px;font-weight:800;letter-spacing:2px;color:rgba(232,242,238,.25);text-transform:uppercase;padding:0 16px;margin-bottom:4px;}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:rgba(232,242,238,.45);font-size:12px;font-weight:500;transition:all 0.15s;border-left:2px solid transparent;letter-spacing:0.2px;}
+  .nav-item:hover{background:rgba(0,200,83,.06);color:rgba(232,242,238,.9);}
+  .nav-item.active{background:rgba(0,200,83,.12);color:${C.green};border-left-color:${C.green};}
+  .sidebar-user{margin-top:auto;padding:14px 16px;border-top:1px solid ${C.charcoal};font-size:11px;color:rgba(232,242,238,.3);}
+  .sidebar-role{display:inline-block;background:${C.charcoal};color:${C.green};font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-bottom:4px;}
   .nav-section-divider{height:1px;background:${C.charcoal};margin:4px 16px;}
-  .nav-section-head{font-size:8px;font-weight:800;letter-spacing:2px;color:rgba(245,240,232,.2);text-transform:uppercase;padding:10px 16px 4px;}
+  .nav-section-head{font-size:8px;font-weight:800;letter-spacing:2px;color:rgba(0,200,83,.35);text-transform:uppercase;padding:10px 16px 4px;}
 
   /* ── Role switcher / pills ── */
   .role-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:4px;border:1px solid ${C.sand};background:${C.warmWhite};cursor:pointer;font-size:11px;font-weight:600;color:${C.ash};transition:all 0.15s;letter-spacing:.3px;}
   .role-btn:hover{background:${C.parchment};border-color:${C.stone};}
   .role-pill{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
-  .role-pill.admin{background:${C.black};color:${C.cream};}
-  .role-pill.shipper{background:${C.ash};color:${C.cream};}
-  .role-pill.carrier{background:${C.stone};color:${C.cream};}
+  .role-pill.admin{background:${C.black};color:${C.green};}
+  .role-pill.shipper{background:${C.olive};color:white;}
+  .role-pill.carrier{background:${C.stone};color:white;}
 
   /* ── Cards ── warm white, subtle border */
   .card{background:${C.warmWhite};border:1px solid ${C.sand};border-radius:8px;padding:20px;margin-bottom:16px;}
@@ -116,23 +123,23 @@ const css = `
   .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:4px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all 0.15s;letter-spacing:.3px;font-family:'Inter',sans-serif;}
   .btn-sm{padding:5px 12px;font-size:11px;border-radius:3px;}
   .btn-xs{padding:3px 8px;font-size:10px;border-radius:3px;}
-  .btn-primary{background:${C.black};color:${C.cream};}
+  .btn-primary{background:${C.black};color:${C.green};}
   .btn-primary:hover{background:${C.ink};}
   .btn-outline{background:transparent;color:${C.ash};border:1px solid ${C.sand};}
   .btn-outline:hover{background:${C.parchment};border-color:${C.stone};}
-  .btn-green{background:${C.olive};color:white;}
-  .btn-green:hover{background:#4A5725;}
+  .btn-green{background:${C.green};color:${C.black};}
+  .btn-green:hover{background:${C.greendk};}
   .btn-purple{background:${C.ash};color:white;}
   .btn-purple:hover{background:${C.charcoal};}
-  .btn-danger{background:${C.crimsonlt};color:${C.crimson};border:1px solid #E0C0C0;}
-  .btn-danger:hover{background:#F0D0D0;}
+  .btn-danger{background:${C.rustlt};color:${C.rust};border:1px solid #FFCDD2;}
+  .btn-danger:hover{background:#FFCDD2;}
   .btn-ghost{background:transparent;color:${C.stone};border:none;cursor:pointer;padding:5px 8px;font-family:'Inter',sans-serif;font-size:12px;}
   .btn-ghost:hover{color:${C.ash};}
-  .btn-orange{background:${C.rust};color:white;}
+  .btn-orange{background:${C.amber};color:white;}
 
   /* ── Inputs ── */
   input,select,textarea{font-family:'Inter',sans-serif;font-size:13px;border:1px solid ${C.sand};border-radius:4px;padding:7px 10px;background:${C.warmWhite};color:${C.ash};width:100%;transition:border .15s,box-shadow .15s;}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:${C.gold};box-shadow:0 0 0 3px rgba(201,168,76,.12);}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:${C.green};box-shadow:0 0 0 3px rgba(0,200,83,.1);}
   label{font-size:11px;font-weight:700;color:${C.stone};margin-bottom:4px;display:block;letter-spacing:.5px;text-transform:uppercase;}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
   .form-group{margin-bottom:12px;}
@@ -178,7 +185,7 @@ const css = `
   .tab-bar{display:flex;gap:0;border-bottom:1px solid ${C.sand};margin-bottom:20px;}
   .tab{padding:8px 16px;font-size:12px;font-weight:600;color:${C.stone};cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;letter-spacing:.3px;text-transform:uppercase;}
   .tab:hover{color:${C.ash};}
-  .tab.active{color:${C.black};border-bottom-color:${C.gold};font-weight:800;}
+  .tab.active{color:${C.black};border-bottom-color:${C.green};font-weight:800;}
 
   /* ── Alerts ── */
   .alert{padding:11px 14px;border-radius:6px;font-size:12px;margin-bottom:12px;line-height:1.5;}
@@ -247,32 +254,32 @@ const css = `
   .wiz-overlay{position:fixed;inset:0;z-index:200;display:flex;background:${C.warmWhite};}
   .wiz-left{width:240px;min-width:240px;background:${C.black};display:flex;flex-direction:column;overflow-y:auto;}
   .wiz-logo{padding:16px 16px 16px;border-bottom:1px solid ${C.charcoal};}
-  .wiz-logo-sub{font-size:8px;color:rgba(201,168,76,.7);letter-spacing:2px;text-transform:uppercase;margin-top:6px;font-weight:700;}
+  .wiz-logo-sub{font-size:8px;color:rgba(0,200,83,.6);letter-spacing:2px;text-transform:uppercase;margin-top:6px;font-weight:700;}
   .wiz-steps{padding:16px 0;flex:1;}
   .wiz-step-group{margin-bottom:4px;}
-  .wiz-group-label{font-size:8px;font-weight:800;letter-spacing:2px;color:rgba(245,240,232,.2);text-transform:uppercase;padding:8px 16px 4px;}
+  .wiz-group-label{font-size:8px;font-weight:800;letter-spacing:2px;color:rgba(0,200,83,.3);text-transform:uppercase;padding:8px 16px 4px;}
   .step-item{display:flex;align-items:center;gap:10px;padding:7px 16px;cursor:pointer;transition:background .15s;border-left:2px solid transparent;}
-  .step-item:hover{background:rgba(245,240,232,.03);}
-  .step-item.wiz-active{background:rgba(201,168,76,.08);border-left-color:${C.gold};}
+  .step-item:hover{background:rgba(0,200,83,.03);}
+  .step-item.wiz-active{background:rgba(0,200,83,.1);border-left-color:${C.green};}
   .step-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;}
-  .step-num.done{background:${C.olive};color:white;}
-  .step-num.wiz-act{background:${C.gold};color:${C.black};}
-  .step-num.pend{background:rgba(245,240,232,.08);color:rgba(245,240,232,.3);}
-  .step-lbl{font-size:11px;font-weight:500;color:rgba(245,240,232,.45);}
-  .step-lbl.wiz-act{color:${C.gold};}
-  .step-lbl.done{color:rgba(245,240,232,.7);}
+  .step-num.done{background:${C.green};color:${C.black};}
+  .step-num.wiz-act{background:${C.green};color:${C.black};}
+  .step-num.pend{background:rgba(232,242,238,.08);color:rgba(232,242,238,.3);}
+  .step-lbl{font-size:11px;font-weight:500;color:rgba(232,242,238,.45);}
+  .step-lbl.wiz-act{color:${C.green};}
+  .step-lbl.done{color:rgba(232,242,238,.7);}
   .wiz-body{flex:1;overflow-y:auto;}
-  .wiz-content{max-width:720px;margin:0 auto;padding:28px 32px;}
+  .wiz-content{max-width:760px;margin:0 auto;padding:28px 32px;}
   .wiz-topbar{background:${C.warmWhite};border-bottom:1px solid ${C.sand};padding:10px 20px;display:flex;align-items:center;justify-content:space-between;}
   .wiz-progress{height:2px;background:${C.sand};}
-  .wiz-progress-fill{height:2px;background:${C.gold};transition:width .4s;}
+  .wiz-progress-fill{height:2px;background:${C.green};transition:width .4s;}
   .wiz-footer{display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid ${C.sand};margin-top:8px;}
-  .option-card{border:1px solid ${C.sand};border-radius:6px;padding:12px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
-  .option-card:hover{border-color:${C.gold};background:${C.goldlt};}
-  .option-card.sel{border-color:${C.gold};background:${C.goldlt};}
-  .option-card input[type=radio]{margin-top:2px;accent-color:${C.gold};}
+  .option-card{border:1px solid ${C.sand};border-radius:6px;padding:14px 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+  .option-card:hover{border-color:${C.green};background:${C.greenlt};}
+  .option-card.sel{border-color:${C.green};background:${C.greenlt};box-shadow:0 0 0 1px ${C.green};}
+  .option-card input[type=radio]{margin-top:0;accent-color:${C.green};width:16px;height:16px;flex-shrink:0;}
   .option-title{font-size:13px;font-weight:700;color:${C.black};}
-  .option-desc{font-size:11px;color:${C.stone};margin-top:2px;line-height:1.5;}
+  .option-desc{font-size:11px;color:${C.stone};margin-top:3px;line-height:1.6;}
   .wiz-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .wiz-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
   .wiz-fg{margin-bottom:12px;}
@@ -2044,60 +2051,34 @@ function SpotBoard({ role }) {
 // ─── END SPOT LOAD SECTION ────────────────────────────────────────────────────
 // Black block with spaced R F P + vertical LAB alongside
 function RFPLabLogo({ dark = false, size = "md" }) {
-  const scales = { sm: 0.48, md: 0.68, lg: 1 };
-  const sc = scales[size] || 0.68;
-
-  // Dimensions matched to the actual logo image:
-  // Black block is wide ~3:2, LAB sits to the right rotated 90° CW, bottom-aligned
-  const bW = 210, bH = 130;       // black block
-  const gap = 10;                  // gap between block and LAB
-  const labW = 32;                 // LAB column width
+  // Logo uses Google Font loaded in CSS for consistent cross-browser rendering
+  // On dark sidebar bg: block lifts to teal, RFP in bright green
+  // On light topbar bg: block is deep teal/black, RFP in white
+  const scales = { sm: 0.44, md: 0.58, lg: 1 };
+  const sc = scales[size] || 0.58;
+  const bW = 220, bH = 136, gap = 9, labW = 38;
   const totalW = bW + gap + labW;
   const totalH = bH;
-
-  // Colors: on dark bg the block lifts slightly so it reads
-  const blockFill = dark ? "#2A2A2A" : "#111111";
-  const rfpFill   = "#F5F0E8";          // cream RFP — always
-  const labFill   = dark ? "#F5F0E8" : "#111111"; // LAB matches bg color
-
-  // LAB rotated 90° CW, centered in its column, vertically centered to block
+  const blockFill = dark ? "#1A3028" : "#0A1A14";
+  const rfpFill   = dark ? "#00C853" : "#F8FAF9";
+  const labFill   = dark ? "#E8F2EE" : "#0A1A14";
   const labCX = bW + gap + labW / 2;
   const labCY = bH / 2;
-
   return (
-    <svg
-      width={totalW * sc} height={totalH * sc}
-      viewBox={`0 0 ${totalW} ${totalH}`}
-      xmlns="http://www.w3.org/2000/svg"
-      role="img" aria-label="RFPlab logo"
-      style={{ display: "block", flexShrink: 0 }}
-    >
-      {/* Black block */}
+    <svg width={totalW*sc} height={totalH*sc} viewBox={`0 0 ${totalW} ${totalH}`}
+      xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RFPlab"
+      style={{display:"block",flexShrink:0}}>
+      <defs>
+        <style>{"@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&display=swap');"}</style>
+      </defs>
       <rect x={0} y={0} width={bW} height={bH} fill={blockFill}/>
-
-      {/* R F P — wide spaced, bold, vertically centered in block */}
-      <text
-        x={bW / 2} y={bH * 0.72}
-        textAnchor="middle"
-        fontFamily="'Arial Black','Impact','Franklin Gothic Heavy',Arial,sans-serif"
-        fontWeight="900"
-        fontSize="72"
-        letterSpacing="14"
-        fill={rfpFill}
-      >R F P</text>
-
-      {/* LAB — rotated 90° clockwise, sitting to the right of the block */}
-      <text
-        x={labCX} y={labCY}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontFamily="'Arial Black','Impact','Franklin Gothic Heavy',Arial,sans-serif"
-        fontWeight="900"
-        fontSize="26"
-        letterSpacing="5"
-        fill={labFill}
-        transform={`rotate(90, ${labCX}, ${labCY})`}
-      >LAB</text>
+      <text x={bW/2} y={bH*0.73} textAnchor="middle"
+        fontFamily="'Barlow Condensed','Arial Black',Impact,Arial,sans-serif"
+        fontWeight="900" fontSize="84" letterSpacing="12" fill={rfpFill}>R F P</text>
+      <text x={labCX} y={labCY} textAnchor="middle" dominantBaseline="central"
+        fontFamily="'Barlow Condensed','Arial Black',Impact,Arial,sans-serif"
+        fontWeight="900" fontSize="24" letterSpacing="6" fill={labFill}
+        transform={`rotate(90,${labCX},${labCY})`}>LAB</text>
     </svg>
   );
 }
@@ -2135,6 +2116,8 @@ function Sidebar({ role, page, setPage }) {
     {icon:"📄",label:"Insurance & COIs",key:"risk_insurance"},
     {icon:"📊",label:"Scorecards",key:"risk_scorecards"},
     {icon:"🔗",label:"Cargo Insurance",key:"risk_loadsure"},
+    {section:"Organization"},
+    {icon:"👥",label:"Team Members",key:"org_team"},
   ];
   const carrierNav = [
     {section:"Contracted RFP"},
@@ -2144,6 +2127,8 @@ function Sidebar({ role, page, setPage }) {
     {icon:"📜",label:"My Activity",key:"activity"},
     {section:"Spot Loads"},
     {icon:"⚡",label:"Spot Board",key:"spot"},
+    {section:"Organization"},
+    {icon:"👥",label:"Team Members",key:"org_team"},
   ];
   const nav = role==="admin" ? adminNav : role==="shipper" ? shipperNav : carrierNav;
   return (
@@ -3786,6 +3771,106 @@ function RiskLoadsurePage({ setPage }) {
 }
 
 // ─── END RISK MANAGEMENT ──────────────────────────────────────────────────────
+
+// ─── Organization Team Members Page ──────────────────────────────────────────
+function OrgTeamPage({ dbProfile, role }) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteModal, setInviteModal] = useState(false);
+  const [form, setForm] = useState({ name:'', email:'', jobTitle:'', orgRole:'member' });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const company = dbProfile?.company || "Your Company";
+
+  useEffect(() => {
+    if (!dbProfile) { setLoading(false); return; }
+    import('./supabase.js').then(({ getOrgMembers }) => {
+      getOrgMembers(company).then(data => { setMembers(data); setLoading(false); });
+    });
+  }, [dbProfile]);
+
+  const handleInvite = async () => {
+    if (!form.name || !form.email) return;
+    setSending(true);
+    try {
+      const { sendUserInvite } = await import('./supabase.js');
+      await sendUserInvite({ email: form.email, full_name: form.name, role, company });
+    } catch(e) {}
+    setSent(true); setSending(false);
+    setTimeout(() => { setSent(false); setInviteModal(false); setForm({name:'',email:'',jobTitle:'',orgRole:'member'}); }, 2000);
+  };
+
+  return (
+    <div>
+      <div className="section-header">
+        <div>
+          <div className="page-title">Team Members</div>
+          <div className="page-sub">{company} · {members.length} member{members.length!==1?'s':''} with portal access</div>
+        </div>
+        <button className="btn btn-green" onClick={()=>setInviteModal(true)}>+ Invite Team Member</button>
+      </div>
+
+      <div className="alert info" style={{marginBottom:16,fontSize:12}}>
+        All team members share access to <strong>{company}</strong>'s RFPs, spot loads, and carrier network. Managers can create RFPs. Members can view and monitor activity.
+      </div>
+
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        {loading
+          ? <div style={{padding:40,textAlign:'center',color:C.stone,fontSize:13}}>Loading…</div>
+          : members.length===0
+            ? <div style={{padding:'52px 20px',textAlign:'center'}}>
+                <div style={{fontSize:36,marginBottom:12}}>👥</div>
+                <div style={{fontWeight:700,fontSize:14,color:C.black,marginBottom:6}}>Just you so far</div>
+                <div style={{fontSize:12,color:C.stone,marginBottom:16,maxWidth:320,margin:'0 auto 16px'}}>Invite colleagues to collaborate on bids, monitor carrier activity, and manage spot loads together.</div>
+                <button className="btn btn-green" onClick={()=>setInviteModal(true)}>Invite First Team Member →</button>
+              </div>
+            : <table>
+                <thead><tr><th>Name</th><th>Email</th><th>Platform Role</th><th>Access</th><th>Joined</th></tr></thead>
+                <tbody>
+                  {members.map(m=>(
+                    <tr key={m.id}>
+                      <td style={{fontWeight:700}}>
+                        {m.full_name||'—'}
+                        {m.id===dbProfile?.id&&<span style={{fontSize:9,fontWeight:800,background:C.greenlt,color:C.green,padding:'1px 6px',borderRadius:2,marginLeft:6}}>YOU</span>}
+                      </td>
+                      <td style={{color:C.stone,fontSize:12}}>{m.email}</td>
+                      <td><span style={{background:C.black,color:C.green,fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:2,textTransform:'uppercase',letterSpacing:.5}}>{m.role}</span></td>
+                      <td style={{fontSize:12,color:C.stone}}>Full access</td>
+                      <td style={{fontSize:11,color:C.stone}}>{new Date(m.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>}
+      </div>
+
+      {inviteModal && (
+        <div className="modal-overlay" onClick={()=>setInviteModal(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Invite Team Member to {company}</div>
+              <button className="btn btn-ghost" onClick={()=>setInviteModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              {sent && <div className="alert" style={{background:C.greenlt,color:C.green,borderLeft:`3px solid ${C.green}`,marginBottom:12}}>✓ Invite sent!</div>}
+              <div className="alert info" style={{marginBottom:14}}>They'll receive an email to set their password and join <strong>{company}</strong>'s portal.</div>
+              <div className="form-group"><label>Full Name</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="First Last"/></div>
+              <div className="form-group"><label>Work Email</label><input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="colleague@company.com"/></div>
+              <div className="form-group"><label>Job Title (optional)</label><input value={form.jobTitle} onChange={e=>setForm(f=>({...f,jobTitle:e.target.value}))} placeholder="Logistics Manager"/></div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={()=>setInviteModal(false)}>Cancel</button>
+              <button className="btn btn-green" onClick={handleInvite} disabled={sending||sent||!form.name||!form.email}>
+                {sending?'⏳ Sending…':sent?'✓ Sent!':'📧 Send Invite'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlaceholderPage({ title, sub }) {
   return (
     <div className="card" style={{textAlign:"center",padding:60}}>
       <div style={{fontSize:32,marginBottom:12}}>🚧</div>
@@ -4347,10 +4432,11 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
   const [page, setPage] = useState(role === "carrier" ? "event" : "dashboard");
   const [bidSettings, setBidSettings] = useState({...DEFAULT_BID_SETTINGS});
 
-  // Real users get empty activity log — data comes from Supabase
-  // Demo mode (no dbUser) keeps the seed data for illustration
+  // Real users get EMPTY state — data comes from Supabase
+  // Demo mode (no dbUser) shows seed data for illustration only
   const [activityLog, setActivityLog] = useState(dbUser ? [] : SEED_LOG);
   const nextId = useState(SEED_LOG.length + 1);
+  const isDemo = !dbUser;
 
   const isLocked = dbProfile && dbProfile.role !== 'admin';
   const displayName = dbProfile?.company || dbProfile?.full_name ||
@@ -4417,6 +4503,7 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="risk_insurance") return <RiskInsurancePage/>;
       if (page==="risk_scorecards")return <RiskScorecardsPage/>;
       if (page==="risk_loadsure")  return <RiskLoadsurePage setPage={setPage}/>;
+      if (page==="org_team")       return <OrgTeamPage dbProfile={dbProfile} role={role}/>;
       return <PlaceholderPage title={page}/>;
     }
     if (role==="carrier") {
@@ -4425,7 +4512,8 @@ export default function App({ dbUser = null, dbProfile = null, initialRole = nul
       if (page==="standing")  return <StandingPage bidSettings={bidSettings} carrierName={displayName} dbProfile={dbProfile}/>;
       if (page==="activity")  return <ActivityLogPage activityLog={activityLog} viewerRole="carrier" dbProfile={dbProfile}/>;
       if (page==="dashboard") return <CarrierDashboard setPage={setPage} bidSettings={bidSettings} dbProfile={dbProfile}/>;
-      return <PlaceholderPage title={page}/>;
+      if (page==="spot")      return <SpotBoard role={role} dbProfile={dbProfile}/>;
+      if (page==="org_team")  return <OrgTeamPage dbProfile={dbProfile} role={role}/>;
     }
   };
 
