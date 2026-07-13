@@ -5077,7 +5077,7 @@ function MyRFPsPage({ setPage, role, dbProfile, onSelectRFP }) {
                         ✏️ Continue Building →
                       </button>
                       <span style={{fontSize:11,color:C.gray,alignSelf:"center"}}>
-                        Saved {fmtDateTime(draft.savedAt)}}
+                        Saved {fmtDateTime(draft.savedAt)}
                       </span>
                     </div>
                   </div>
