@@ -1854,8 +1854,8 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
       const { createRFP } = await import('./supabase.js');
       const rfpPayload = {
         name:           basics.name || "Untitled RFP",
-        shipper_id:     basics.shipperId || null,   // must be set for getRFPs to find it
-        shipper_name:   basics.shipper || "",
+        shipper_id:     dbProfile?.id || basics.shipperId || null,   // use live dbProfile.id
+        shipper_name:   basics.shipper || dbProfile?.company || "",
         status:         "active",
         modes:          basics.modes || [],
         term:           basics.term || "",
