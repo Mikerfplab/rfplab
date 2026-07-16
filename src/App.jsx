@@ -2060,7 +2060,7 @@ function RFPWizard({ onClose, onLaunched, builderRole = "shipper", initialShippe
       <div style={{fontSize:14,color:C.stone,marginBottom:24,lineHeight:1.6}}>
         <strong>{basics.name||"Your RFP"}</strong> is live. Invitations being sent to <strong>{cData.carriers?.length||0} carriers and brokers</strong>.
       </div>
-      <button className="btn btn-primary" onClick={onClose}>← Back to Dashboard</button>
+      <button className="btn btn-primary" onClick={onClose}>← Back to Home</button>
     </div>
   );
 
@@ -2546,7 +2546,7 @@ function RFPLabLogo({ dark = false, size = "md" }) {
 function Sidebar({ role, page, setPage, dbProfile = null }) {
   const adminNav = [
     {section:"Platform"},
-    {icon:"⬜",label:"Dashboard",key:"dashboard"},
+    {icon:"⬜",label:"Home",key:"dashboard"},
     {icon:"👥",label:"Users",key:"users"},
     {icon:"📋",label:"All RFPs",key:"rfps"},
     {icon:"🚀",label:"New RFP",key:"new_rfp"},
@@ -2561,7 +2561,7 @@ function Sidebar({ role, page, setPage, dbProfile = null }) {
   ];
   const shipperNav = [
     {section:"Contracted RFP"},
-    {icon:"⬜",label:"Dashboard",key:"dashboard"},
+    {icon:"⬜",label:"Home",key:"dashboard"},
     {icon:"📋",label:"My RFPs",key:"rfps"},
     {icon:"🚀",label:"New RFP",key:"new_rfp"},
     {icon:"📊",label:"Results",key:"results"},
